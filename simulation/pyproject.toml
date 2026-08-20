@@ -1,0 +1,32 @@
+[project]
+name = "aureon-simulation"
+version = "0.1.0"
+description = "Aureon — Digital twin simulation engine"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26.0",
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.9.0"]
+dev = [
+    "pytest>=8.2.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
