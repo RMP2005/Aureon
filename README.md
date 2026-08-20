@@ -1,35 +1,58 @@
 # Aureon
 
-**AI-powered digital twin platform** — unifying simulation, machine learning, and interactive visualization.
+Aureon is an AI-powered urban digital twin platform. It features a Next.js frontend, a FastAPI backend, Python-based machine learning models, and an advanced urban simulation engine.
 
-## Project Structure
+## Tech Stack
 
-```
-frontend/       → Next.js + TypeScript web application
-backend/        → FastAPI + Python API server
-ml/             → Machine learning pipelines & models
-simulation/     → Digital twin simulation engine
-data/           → Raw and processed datasets
-docs/           → Architecture docs and guides
-```
+| Component | Technology |
+|---|---|
+| **Frontend** | Next.js 14, React, Tailwind CSS |
+| **Backend** | Python 3.11, FastAPI, Uvicorn |
+| **Machine Learning** | Python, scikit-learn, PyTorch |
+| **Simulation** | Python, custom digital twin engine |
+| **Deployment** | Docker, Docker Compose |
 
-## Quick Start
+## Prerequisites
 
-> **Prerequisites**: Node.js ≥ 20, Python ≥ 3.11
+- **Node.js** 20+
+- **Python** 3.11+
+- **Docker** & **Docker Compose**
+- **Make** (optional, but recommended)
 
-Each subsystem has its own README with setup instructions:
+## Quick Start (Docker)
 
-- [`frontend/README.md`](frontend/README.md)
-- [`backend/README.md`](backend/README.md)
-- [`ml/README.md`](ml/README.md)
-- [`simulation/README.md`](simulation/README.md)
+The easiest way to run the entire Aureon stack is using Docker Compose via the provided Makefile.
+
+1. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Start the Stack**
+   ```bash
+   make dev
+   ```
+   This will build the Docker images and start the frontend on `http://localhost:3000` and the backend on `http://localhost:8000`.
+
+3. **Stop the Stack**
+   ```bash
+   make dev-down
+   ```
+
+## Local Development (Without Docker)
+
+You can also run components individually using Make targets:
+
+- **Frontend**: `make frontend-dev`
+- **Backend**: `make backend-dev`
+- **Testing**: `make test` (runs all tests)
+- **Linting**: `make lint` (runs all linters)
+
+Check `make help` for all available commands.
 
 ## Documentation
 
-- [Project Plan](PROJECT_PLAN.md) — Vision, architecture, and development phases
-- [Architecture](docs/architecture.md) — System design and data flow
-- [API Contracts](docs/api-contracts.md) — Endpoint specifications
-
-## License
-
-Proprietary — All rights reserved.
+- [Docs Home](docs/README.md)
+- [Architecture](docs/architecture.md)
+- [API Contracts](docs/api-contracts.md)
+- [Project Plan](PROJECT_PLAN.md)

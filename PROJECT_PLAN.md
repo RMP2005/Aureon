@@ -1,70 +1,33 @@
-# Aureon — Project Plan
+# Aureon Project Plan & Architecture
 
-## 1. Project Vision
+## 1. Executive Summary
 
-**Aureon** is an AI-powered digital twin platform that unifies real-time simulation, machine learning inference, and interactive visualization into a single cohesive system.
+Aureon is an AI-powered urban digital twin platform designed to simulate, analyze, and optimize city operations in real-time. It integrates a deterministic simulation engine with machine learning models for predictive analytics, served through a modern web interface.
 
-The platform enables users to:
+## 2. High-Level Architecture
 
-- Build and run high-fidelity **digital twin simulations** of complex systems
-- Train and deploy **ML models** that learn from simulation and real-world data
-- Interact with simulations through a modern **web-based dashboard**
-- Close the loop between simulation output, AI predictions, and human decision-making
-
-Aureon is designed from the ground up for **modularity**, **scalability**, and **developer ergonomics** — every subsystem communicates through well-defined APIs and data contracts.
-
----
-
-## 2. System Architecture
+The system is composed of four main pillars:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      Frontend (Next.js)                 │
-│         Dashboard · Visualization · Controls            │
-└────────────────────────┬────────────────────────────────┘
-                         │  REST / WebSocket
-┌────────────────────────▼────────────────────────────────┐
-│                    Backend (FastAPI)                     │
-│       API Gateway · Auth · Orchestration · Events       │
-├──────────────┬──────────────────────┬───────────────────┤
-│              │                      │                   │
-│   ┌──────────▼──────────┐  ┌───────▼────────────┐      │
-│   │   ML Pipeline Layer │  │  Simulation Engine  │      │
-│   │  Training · Serving │  │  Physics · Stepping │      │
-│   └──────────┬──────────┘  └───────┬────────────┘      │
-│              │                      │                   │
-│   ┌──────────▼──────────────────────▼───────────┐      │
-│   │              Data Layer                      │      │
-│   │    Raw · Processed · Feature Store           │      │
-│   └─────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────┐      ┌─────────────────┐
+│                 │      │                 │
+│   Next.js UI    │◄────►│   FastAPI       │
+│  (Frontend)     │      │   Backend       │
+│                 │      │                 │
+└─────────────────┘      └──────┬───┬──────┘
+                                │   │
+         ┌──────────────────────┘   └──────────────────────┐
+         │                                                 │
+         ▼                                                 ▼
+┌─────────────────┐      ┌─────────────────────────────────┐
+│                 │      │                                 │
+│   ML Pipeline   │◄────►│       Simulation Engine         │
+│ (PyTorch/Scikit)│      │ (City, Environment, Emergency)  │
+│                 │      │                                 │
+└─────────────────┘      └─────────────────────────────────┘
 ```
 
-### Key Architectural Decisions
-
-| Decision | Choice | Rationale |
-|---|---|---|
-| Frontend framework | Next.js 14 + TypeScript | SSR, file-based routing, strong typing |
-| API layer | FastAPI (Python) | Async, auto-docs, native Pydantic validation |
-| ML framework | PyTorch / scikit-learn | Ecosystem maturity, GPU support |
-| Simulation runtime | Custom Python engine | Full control over physics step, state, and I/O |
-| Inter-service comms | REST + WebSocket | REST for CRUD, WebSocket for real-time streams |
-| Data serialization | JSON + Parquet | JSON for API, Parquet for columnar analytics |
-
----
-
-## 3. Folder Responsibilities
-
-```
-Aureon/
-├── frontend/          → Next.js web application
-├── backend/           → FastAPI REST/WebSocket server
-├── ml/                → Machine learning pipelines & models
-├── simulation/        → Digital twin simulation engine
-├── data/              → Raw and processed datasets
-├── docs/              → Architecture docs, ADRs, guides
-└── PROJECT_PLAN.md    → This file
-```
+## 3. Subsystem Breakdown
 
 ### `frontend/`
 The user-facing web application. Responsible for:
@@ -241,16 +204,16 @@ Experiment → Train → Evaluate → Register → Deploy → Monitor → Retrai
 ### Phase 0 — Foundation (Current)
 - [x] Define project structure and folder layout
 - [x] Write PROJECT_PLAN.md
-- [ ] Initialize all sub-project scaffolds (package.json, pyproject.toml, etc.)
-- [ ] Set up linting, formatting, and editor config
-- [ ] Create development environment documentation
+- [x] Initialize all sub-project scaffolds (package.json, pyproject.toml, etc.)
+- [x] Set up linting, formatting, and editor config
+- [x] Create development environment documentation
 
 ### Phase 1 — Core API & Data Layer
-- [ ] Implement FastAPI skeleton with health check and CORS
-- [ ] Define core Pydantic models and database schemas
-- [ ] Set up data ingestion pipeline (`data/raw/` → `data/processed/`)
-- [ ] Create initial API endpoints (CRUD for entities)
-- [ ] Add authentication scaffolding (JWT)
+- [x] Implement FastAPI skeleton with health check and CORS
+- [x] Define core Pydantic models and database schemas
+- [x] Set up data ingestion pipeline (`data/raw/` → `data/processed/`)
+- [x] Create initial API endpoints (CRUD for entities)
+- [x] Add authentication scaffolding (JWT)
 
 ### Phase 2 — Simulation Engine MVP
 - [ ] Build core simulation loop (initialize → step → snapshot)

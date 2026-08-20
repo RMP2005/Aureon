@@ -1,11 +1,5 @@
-"""API routes package."""
+"""API package."""
 
-from fastapi import APIRouter
+from src.api.routes import router
 
-router = APIRouter()
-
-
-@router.get("/status")
-async def api_status() -> dict[str, str]:
-    """API status endpoint."""
-    return {"status": "ok"}
+__all__ = ["router"]

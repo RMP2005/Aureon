@@ -1,11 +1,11 @@
 [project]
 name = "aureon-simulation"
 version = "0.1.0"
-description = "Aureon — Digital twin simulation engine"
+description = "Aureon — Digital twin simulation engine for urban environments"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26.0",
-    "pydantic>=2.7.0",
+    "pydantic>=2.9.0",
     "pyyaml>=6.0.0",
 ]
 

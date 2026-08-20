@@ -1,0 +1,16 @@
+.git
+.gitignore
+*.md
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+node_modules
+.next
+.env
+.env.local
+*.egg-info
+dist
+build
+.venv

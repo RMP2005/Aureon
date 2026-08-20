@@ -1,43 +1,20 @@
-# Aureon — Simulation
+# Aureon Simulation
 
-Digital twin simulation engine with time-stepping, state management, and scenario configuration.
+Aureon is an AI-powered urban intelligence platform — a digital twin of a city for emergency response and resource optimization.
+
+## Structure
+- `src/engine/`: Core simulation engine and time-stepping logic.
+- `src/models/`: Production-grade Pydantic models for city state, environment, and emergency events.
+- `src/scenarios/`: Default configurations and scenario generation.
+- `tests/`: Unit tests.
 
 ## Setup
-
+Install dependencies with:
 ```bash
-cd simulation
-python -m venv .venv
-source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## Structure
-
-```
-src/
-├── engine/
-│   ├── __init__.py
-│   └── core.py       → BaseEngine ABC, SimulationState dataclass
-├── models/            → Domain-specific physics models
-└── scenarios/         → Scenario configs (YAML) and loaders
-tests/                 → Test suite
-```
-
-## Engine Usage
-
-All simulation engines extend `BaseEngine`:
-
-```python
-from src.engine.core import BaseEngine, SimulationState
-import copy
-
-class MyEngine(BaseEngine):
-    def step(self) -> SimulationState:
-        self.state.tick += 1
-        self.state.time += self.dt
-        # Update domain-specific state...
-        return copy.deepcopy(self.state)
-
-engine = MyEngine(dt=0.01)
-history = engine.run(steps=1000)
+Run tests with:
+```bash
+pytest
 ```

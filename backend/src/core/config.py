@@ -4,14 +4,13 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Global application settings.
+    """Global application settings."""
 
-    Values are loaded from environment variables or a .env file.
-    """
-
+    # Application
     PROJECT_NAME: str = "Aureon"
     VERSION: str = "0.1.0"
     DEBUG: bool = False
+    API_V1_PREFIX: str = "/api/v1"
 
     # Server
     HOST: str = "0.0.0.0"
@@ -20,8 +19,16 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
-    # Database (placeholder)
+    # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./aureon.db"
+
+    # Simulation
+    SIMULATION_TICK_RATE: float = 0.1
+    SIMULATION_MAX_STEPS: int = 10000
+
+    # ML
+    ML_MODEL_DIR: str = "./models"
+    ML_DEFAULT_CONFIDENCE_THRESHOLD: float = 0.7
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

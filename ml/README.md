@@ -1,47 +1,12 @@
-# Aureon — ML
+# Aureon ML
 
-Machine learning pipelines, model training, evaluation, and inference.
+Machine learning pipelines and models for the Aureon urban intelligence platform.
 
-## Setup
+## Module Structure
 
-```bash
-cd ml
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-
-# Optional: PyTorch support
-pip install -e ".[torch]"
-
-# Optional: MLflow experiment tracking
-pip install -e ".[tracking]"
-```
-
-## Structure
-
-```
-src/
-├── pipelines/       → Data processing and training pipelines
-│   └── base.py      → Abstract pipeline interface
-├── models/          → Model architectures and definitions
-├── training/        → Training scripts and hyperparameter configs
-├── evaluation/      → Metrics, validation, and benchmarking
-└── inference/       → Inference serving and batch prediction
-tests/               → Test suite
-```
-
-## Pipeline Usage
-
-All pipelines extend `BasePipeline` and implement a `run()` method:
-
-```python
-from src.pipelines.base import BasePipeline
-
-class MyPipeline(BasePipeline):
-    def run(self, **kwargs):
-        # 1. Load data
-        # 2. Preprocess
-        # 3. Train / Predict
-        # 4. Return results
-        ...
-```
+- `src/models`: Base interfaces for AI models (`classifier`, `predictor`, `optimizer`).
+- `src/pipelines`: Base pipeline interface for data preprocessing and feature engineering.
+- `src/training`: Model training orchestrator interfaces.
+- `src/evaluation`: Evaluation metrics for various model types.
+- `src/inference`: Inference server and model registry for backend integration.
+- `tests`: Unit tests for ML module interfaces.

@@ -1,1 +1,1 @@
-"""Aureon ML — Machine learning pipelines and models."""
+"""Aureon ML — Machine learning pipelines for urban intelligence."""

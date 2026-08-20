@@ -1,17 +1,17 @@
 [project]
 name = "aureon-ml"
 version = "0.1.0"
-description = "Aureon — Machine learning pipelines and models"
+description = "Aureon — Machine learning pipelines for urban intelligence"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26.0",
     "pandas>=2.2.0",
-    "scikit-learn>=1.5.0",
-    "pydantic>=2.7.0",
+    "pydantic>=2.9.0",
 ]
 
 [project.optional-dependencies]
 torch = ["torch>=2.3.0"]
+sklearn = ["scikit-learn>=1.5.0"]
 tracking = ["mlflow>=2.14.0"]
 dev = [
     "pytest>=8.2.0",
