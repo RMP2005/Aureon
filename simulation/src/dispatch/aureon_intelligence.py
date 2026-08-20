@@ -28,13 +28,34 @@ class AureonDecisionEngine(BaseDispatchStrategy):
         city_state: dict[str, Any],
         emergency_event: dict[str, Any],
     ) -> dict[str, Any]:
-        """Generic AI decision interface matching Phase 2 specification."""
-        return {
+        """AI decision interface — analyzes city state and recommends dispatch action."""
+        severity = emergency_event.get("severity", "moderate")
+        required_cap = emergency_event.get("required_capability", "BLS")
+        active_ambulances = city_state.get("active_ambulances", 0)
+        total_ambulances = city_state.get("total_ambulances", 14)
+
+        fleet_pressure = active_ambulances / max(total_ambulances, 1)
+
+        recommendation = {
             "strategy": self.name,
             "action": "dispatch_ambulance",
-            "recommended_capability": emergency_event.get("required_capability", "BLS"),
+            "recommended_capability": required_cap,
+            "fleet_pressure": round(fleet_pressure, 3),
             "status": "ready",
         }
+
+        if severity in ("critical", "high"):
+            recommendation["priority"] = "immediate"
+            recommendation["prefer_als"] = True
+        else:
+            recommendation["priority"] = "urgent" if severity == "moderate" else "routine"
+            recommendation["prefer_als"] = False
+
+        if fleet_pressure > 0.8:
+            recommendation["status"] = "high_demand"
+            recommendation["note"] = "Fleet under high pressure — consider mutual aid"
+
+        return recommendation
 
     def dispatch(
         self,
@@ -44,7 +65,7 @@ class AureonDecisionEngine(BaseDispatchStrategy):
         road_network: RoadNetwork,
         all_ambulances: list[Ambulance] | None = None,
     ) -> DispatchDecision:
-        """Execute multi-factor intelligent dispatch evaluation."""
+        """Execute multi-factor intelligent dispatch with multi-incident awareness."""
         if not available_ambulances:
             return DispatchDecision(
                 ambulance_id=None,
@@ -55,10 +76,30 @@ class AureonDecisionEngine(BaseDispatchStrategy):
         is_critical = incident.severity in (IncidentSeverity.CRITICAL, IncidentSeverity.HIGH)
         needs_als = incident.required_capability in (AmbulanceCapability.ALS, AmbulanceCapability.MICU)
 
-        scored_candidates: list[tuple[float, Ambulance, Any, float]] = []
+        # Pre-analysis via recommend_action
+        city_state_info = {
+            "active_ambulances": sum(1 for a in (all_ambulances or []) if not a.is_available),
+            "total_ambulances": len(all_ambulances or []),
+        }
+        event_info = {
+            "severity": incident.severity.value,
+            "required_capability": incident.required_capability.value,
+        }
+        self.recommend_action(city_state_info, event_info)
+
+        # Count ALS availability for resource conservation
         idle_als_count = sum(
             1 for a in available_ambulances if a.capability == AmbulanceCapability.ALS
         )
+
+        # Multi-incident awareness: check active incidents near this location
+        nearby_active_count = 0
+        if all_ambulances:
+            for amb in all_ambulances:
+                if amb.status.value in ("dispatched_to_scene", "on_scene_triage"):
+                    nearby_active_count += 1
+
+        scored_candidates: list[tuple[float, Ambulance, Any, float]] = []
 
         for amb in available_ambulances:
             route = road_network.calculate_route(
@@ -87,18 +128,23 @@ class AureonDecisionEngine(BaseDispatchStrategy):
                     else:
                         capability_cost = 0.5
 
-            total_score = (self.w_eta * time_cost) + (self.w_capability * capability_cost)
+            # Multi-incident penalty: penalize if many ambulances are already busy
+            fleet_pressure = nearby_active_count / max(len(all_ambulances or []), 1)
+            pressure_penalty = fleet_pressure * 0.2 if is_critical else 0.0
+
+            total_score = (self.w_eta * time_cost) + (self.w_capability * capability_cost) + pressure_penalty
             scored_candidates.append((total_score, amb, route, eta_sec))
 
         if not scored_candidates:
-            best_amb = available_ambulances[0]
-            best_route = road_network.calculate_route(
-                best_amb.current_node_id, incident.location_node_id, weight="time"
+            # No reachable ambulance — keep incident queued
+            return DispatchDecision(
+                ambulance_id=None,
+                target_hospital_id=None,
+                rationale="No reachable ambulance found via road network",
             )
-            best_eta = best_route.estimated_time_seconds if best_route.found else 600.0
-        else:
-            scored_candidates.sort(key=lambda x: x[0])
-            _, best_amb, best_route, best_eta = scored_candidates[0]
+
+        scored_candidates.sort(key=lambda x: x[0])
+        _, best_amb, best_route, best_eta = scored_candidates[0]
 
         best_hospital: Hospital | None = None
         best_hosp_route = None
@@ -130,7 +176,13 @@ class AureonDecisionEngine(BaseDispatchStrategy):
                 min_hosp_time = hosp_eta_sec
 
         if best_hospital is None and hospitals:
-            best_hospital = hospitals[0]
+            # Fallback: pick first hospital with available capacity
+            for hosp in hospitals:
+                if hosp.occupied_er_beds < hosp.total_er_beds:
+                    best_hospital = hosp
+                    break
+            if best_hospital is None:
+                best_hospital = hospitals[0]
 
         matched = best_amb.can_handle(incident.required_capability)
         rationale = (

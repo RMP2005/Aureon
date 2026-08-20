@@ -78,7 +78,7 @@ class TestModels(unittest.TestCase):
 
     def test_default_city_scenario(self) -> None:
         city = create_default_city()
-        self.assertEqual(len(city.zones), 5)
+        self.assertEqual(len(city.zones), 6)
         self.assertGreater(city.resources.total_units, 0)
 
     def test_default_environment_scenario(self) -> None:

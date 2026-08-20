@@ -1,0 +1,225 @@
+{
+  "experiment_meta": {
+    "num_seeds": 20,
+    "seeds_used": [
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61
+    ],
+    "duration_minutes": 60.0
+  },
+  "baseline": {
+    "rt_mean_min": 7.91,
+    "rt_ci": [
+      6.95,
+      8.87
+    ],
+    "p90_min": 15.67,
+    "critical_rt_min": 7.47,
+    "completed_mean": 7.7
+  },
+  "heuristic_aureon": {
+    "rt_mean_min": 8.38,
+    "rt_ci": [
+      7.56,
+      9.19
+    ],
+    "p90_min": 16.86,
+    "critical_rt_min": 8.68,
+    "completed_mean": 7.5,
+    "improvement_pct": -5.94
+  },
+  "predictive_aureon": {
+    "rt_mean_min": 9.94,
+    "rt_ci": [
+      8.48,
+      11.4
+    ],
+    "p90_min": 19.47,
+    "critical_rt_min": 9.38,
+    "completed_mean": 6.8,
+    "improvement_pct": -25.66
+  },
+  "optimization_aureon": {
+    "rt_mean_min": 7.56,
+    "rt_ci": [
+      6.55,
+      8.57
+    ],
+    "p90_min": 16.9,
+    "critical_rt_min": 7.36,
+    "completed_mean": 7.7,
+    "improvement_pct": 4.42
+  },
+  "demand_model": {
+    "rmse": 1.6603,
+    "r2": 0.9995,
+    "role": "auxiliary_signal_not_dispatch_control",
+    "feature_importance_top5": {
+      "prev_window_zone_incidents": 0.3512,
+      "hour_of_day": 0.349,
+      "prev_window_avg_rt": 0.1789,
+      "active_incidents_zone": 0.0387,
+      "prev_window_total_incidents": 0.0292
+    }
+  },
+  "per_seed_results": [
+    {
+      "seed": 42,
+      "baseline_rt_min": 6.92,
+      "heuristic_rt_min": 7.78,
+      "predictive_rt_min": 8.04,
+      "optim_rt_min": 6.92
+    },
+    {
+      "seed": 43,
+      "baseline_rt_min": 6.51,
+      "heuristic_rt_min": 6.78,
+      "predictive_rt_min": 14.88,
+      "optim_rt_min": 5.98
+    },
+    {
+      "seed": 44,
+      "baseline_rt_min": 4.68,
+      "heuristic_rt_min": 5.17,
+      "predictive_rt_min": 6.22,
+      "optim_rt_min": 4.44
+    },
+    {
+      "seed": 45,
+      "baseline_rt_min": 7.68,
+      "heuristic_rt_min": 8.29,
+      "predictive_rt_min": 10.35,
+      "optim_rt_min": 7.18
+    },
+    {
+      "seed": 46,
+      "baseline_rt_min": 5.88,
+      "heuristic_rt_min": 8.16,
+      "predictive_rt_min": 6.55,
+      "optim_rt_min": 5.88
+    },
+    {
+      "seed": 47,
+      "baseline_rt_min": 6.05,
+      "heuristic_rt_min": 7.42,
+      "predictive_rt_min": 7.38,
+      "optim_rt_min": 5.1
+    },
+    {
+      "seed": 48,
+      "baseline_rt_min": 9.05,
+      "heuristic_rt_min": 8.74,
+      "predictive_rt_min": 16.48,
+      "optim_rt_min": 6.44
+    },
+    {
+      "seed": 49,
+      "baseline_rt_min": 7.08,
+      "heuristic_rt_min": 7.12,
+      "predictive_rt_min": 7.48,
+      "optim_rt_min": 6.44
+    },
+    {
+      "seed": 50,
+      "baseline_rt_min": 6.23,
+      "heuristic_rt_min": 6.38,
+      "predictive_rt_min": 6.93,
+      "optim_rt_min": 5.15
+    },
+    {
+      "seed": 51,
+      "baseline_rt_min": 5.87,
+      "heuristic_rt_min": 8.76,
+      "predictive_rt_min": 8.06,
+      "optim_rt_min": 5.87
+    },
+    {
+      "seed": 52,
+      "baseline_rt_min": 7.52,
+      "heuristic_rt_min": 8.0,
+      "predictive_rt_min": 10.49,
+      "optim_rt_min": 7.3
+    },
+    {
+      "seed": 53,
+      "baseline_rt_min": 8.48,
+      "heuristic_rt_min": 9.23,
+      "predictive_rt_min": 6.96,
+      "optim_rt_min": 9.37
+    },
+    {
+      "seed": 54,
+      "baseline_rt_min": 6.97,
+      "heuristic_rt_min": 6.97,
+      "predictive_rt_min": 9.98,
+      "optim_rt_min": 9.2
+    },
+    {
+      "seed": 55,
+      "baseline_rt_min": 8.49,
+      "heuristic_rt_min": 10.37,
+      "predictive_rt_min": 11.7,
+      "optim_rt_min": 7.82
+    },
+    {
+      "seed": 56,
+      "baseline_rt_min": 13.3,
+      "heuristic_rt_min": 12.62,
+      "predictive_rt_min": 10.72,
+      "optim_rt_min": 12.46
+    },
+    {
+      "seed": 57,
+      "baseline_rt_min": 11.04,
+      "heuristic_rt_min": 9.57,
+      "predictive_rt_min": 11.11,
+      "optim_rt_min": 9.65
+    },
+    {
+      "seed": 58,
+      "baseline_rt_min": 11.65,
+      "heuristic_rt_min": 12.29,
+      "predictive_rt_min": 17.3,
+      "optim_rt_min": 12.95
+    },
+    {
+      "seed": 59,
+      "baseline_rt_min": 7.15,
+      "heuristic_rt_min": 7.93,
+      "predictive_rt_min": 6.9,
+      "optim_rt_min": 7.15
+    },
+    {
+      "seed": 60,
+      "baseline_rt_min": 9.1,
+      "heuristic_rt_min": 8.51,
+      "predictive_rt_min": 9.54,
+      "optim_rt_min": 8.35
+    },
+    {
+      "seed": 61,
+      "baseline_rt_min": 8.59,
+      "heuristic_rt_min": 7.43,
+      "predictive_rt_min": 11.7,
+      "optim_rt_min": 7.53
+    }
+  ]
+}

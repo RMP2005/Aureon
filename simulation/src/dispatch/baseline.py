@@ -47,8 +47,12 @@ class NearestAvailableStrategy(BaseDispatchStrategy):
                 best_scene_route = route
 
         if best_ambulance is None or best_scene_route is None:
-            best_ambulance = available_ambulances[0]
-            min_scene_time = 600.0
+            # No reachable ambulance found — keep incident queued
+            return DispatchDecision(
+                ambulance_id=None,
+                target_hospital_id=None,
+                rationale="No reachable ambulance found via road network",
+            )
 
         best_hospital: Hospital | None = None
         best_hosp_route = None

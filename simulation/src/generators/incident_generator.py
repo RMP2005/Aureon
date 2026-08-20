@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any
 
 from ..models.ambulance import AmbulanceCapability
+from ..models.dynamic_city import get_zone_weights
 
 
 class IncidentCategory(str, Enum):
@@ -179,8 +180,16 @@ class ScenarioGenerator:
         tick: int,
         sim_time_sec: float,
         category: IncidentCategory | None = None,
+        zone_weights: dict[str, float] | None = None,
     ) -> Incident:
-        """Generate a single emergency incident."""
+        """Generate a single emergency incident.
+
+        Args:
+            tick: Simulation tick number.
+            sim_time_sec: Simulation time in seconds.
+            category: Override incident category (None for random).
+            zone_weights: Zone name -> relative weight for location selection.
+        """
         self._incident_counter += 1
         incident_id = f"inc_{self._incident_counter:04d}"
 
@@ -199,7 +208,23 @@ class ScenarioGenerator:
             category = self.rng.choices(category_choices, weights=weights, k=1)[0]
 
         profile = INCIDENT_PROFILES[category]
-        node_id, node_name, lat, lon = self.rng.choice(self.nodes)
+
+        # Zone-weighted location selection
+        if zone_weights and len(self.nodes) > 1:
+            node_weights = []
+            for node_id, node_name, lat, lon in self.nodes:
+                # Look up zone from node metadata or default
+                zone = "general"
+                for zn, w in zone_weights.items():
+                    if zn.lower() in node_name.lower():
+                        zone = zn
+                        break
+                node_weights.append(zone_weights.get(zone, 1.0))
+
+            chosen_idx = self.rng.choices(range(len(self.nodes)), weights=node_weights, k=1)[0]
+            node_id, node_name, lat, lon = self.nodes[chosen_idx]
+        else:
+            node_id, node_name, lat, lon = self.rng.choice(self.nodes)
 
         return Incident(
             id=incident_id,
@@ -220,8 +245,15 @@ class ScenarioGenerator:
         self,
         duration_minutes: float,
         incident_rate_per_hour: float = 12.0,
+        use_dynamic_zones: bool = False,
     ) -> list[tuple[float, Incident]]:
-        """Pre-generate a complete deterministic incident schedule over a time window."""
+        """Pre-generate a complete deterministic incident schedule over a time window.
+
+        Args:
+            duration_minutes: Simulation duration in minutes.
+            incident_rate_per_hour: Average incidents per hour (Poisson rate).
+            use_dynamic_zones: If True, apply time-of-day zone weighting.
+        """
         total_seconds = duration_minutes * 60.0
         avg_interval_sec = 3600.0 / incident_rate_per_hour
 
@@ -231,9 +263,11 @@ class ScenarioGenerator:
         tick = 0
         while current_time < total_seconds:
             tick = int(current_time)
+            zone_weights = get_zone_weights(current_time) if use_dynamic_zones else None
             incident = self.generate_incident(
                 tick=tick,
                 sim_time_sec=current_time,
+                zone_weights=zone_weights,
             )
             schedule.append((current_time, incident))
             interval = self.rng.expovariate(1.0 / avg_interval_sec)

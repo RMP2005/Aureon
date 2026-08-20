@@ -7,7 +7,6 @@ from .dispatch import (
     NearestAvailableStrategy,
 )
 from .engine.city_engine import CitySimulationEngine, SimulationMetrics
-from .evaluation.evaluator import ComparisonReport, SimulationEvaluator
 from .generators import (
     INCIDENT_PROFILES,
     Incident,
@@ -28,6 +27,16 @@ from .models.hospital import (
 )
 from .network.bangalore_map import build_bangalore_network
 from .network.road_graph import RoadEdge, RoadNetwork, RoadNode, RoadType, RouteResult
+
+# Lazy imports to avoid circular dependencies with ML modules
+def __getattr__(name: str):
+    if name == "ComparisonReport":
+        from .evaluation.evaluator import ComparisonReport
+        return ComparisonReport
+    if name == "SimulationEvaluator":
+        from .evaluation.evaluator import SimulationEvaluator
+        return SimulationEvaluator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "Ambulance",

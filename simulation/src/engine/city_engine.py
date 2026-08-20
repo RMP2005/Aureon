@@ -10,6 +10,7 @@ from ..dispatch.base import BaseDispatchStrategy
 from ..dispatch.baseline import NearestAvailableStrategy
 from ..generators.incident_generator import Incident
 from ..models.ambulance import Ambulance, AmbulanceStatus, create_default_bangalore_fleet
+from ..models.dynamic_city import DynamicTrafficModel
 from ..models.hospital import Hospital, get_default_bangalore_hospitals
 from ..network.bangalore_map import build_bangalore_network
 from ..network.road_graph import RoadNetwork
@@ -86,12 +87,17 @@ class CitySimulationEngine:
         ambulances: list[Ambulance] | None = None,
         strategy: BaseDispatchStrategy | None = None,
         dt_seconds: float = 10.0,
+        enable_dynamic_traffic: bool = True,
     ) -> None:
         self.road_network = road_network or build_bangalore_network()
         self.hospitals = hospitals or get_default_bangalore_hospitals()
         self.ambulances = ambulances or create_default_bangalore_fleet()
         self.strategy = strategy or NearestAvailableStrategy()
         self.dt = dt_seconds
+
+        # Dynamic traffic model for time-of-day congestion
+        self.enable_dynamic_traffic = enable_dynamic_traffic
+        self.traffic_model = DynamicTrafficModel(self.road_network) if enable_dynamic_traffic else None
 
         self.current_tick: int = 0
         self.sim_time_seconds: float = 0.0
@@ -102,6 +108,11 @@ class CitySimulationEngine:
 
         self.dispatch_log: list[dict[str, Any]] = []
 
+        # Snapshot initial hospital state for correct reset
+        self._initial_hospital_state: list[tuple[int, int]] = [
+            (h.occupied_er_beds, h.occupied_icu_beds) for h in self.hospitals
+        ]
+
     def reset(self) -> None:
         """Reset the simulation environment to initial conditions."""
         self.current_tick = 0
@@ -111,9 +122,11 @@ class CitySimulationEngine:
         self.pending_queue.clear()
         self.dispatch_log.clear()
 
-        for h in self.hospitals:
-            h.occupied_er_beds = int(h.total_er_beds * 0.4)
-            h.occupied_icu_beds = int(h.total_icu_beds * 0.4)
+        # Restore hospital state from snapshot (not hardcoded 0.4)
+        for h, (init_er, init_icu) in zip(self.hospitals, self._initial_hospital_state):
+            h.occupied_er_beds = init_er
+            h.occupied_icu_beds = init_icu
+            h._active_patients.clear()
 
         for amb in self.ambulances:
             amb.status = AmbulanceStatus.IDLE_AT_BASE
@@ -127,15 +140,42 @@ class CitySimulationEngine:
             amb.total_busy_time_sec = 0.0
             amb.total_idle_time_sec = 0.0
 
+    def _sort_pending_by_priority(self) -> None:
+        """Sort pending queue by severity (critical first), then capability requirement, then wait time."""
+        severity_order = {
+            "critical": 0,
+            "high": 1,
+            "moderate": 2,
+            "low": 3,
+        }
+        self.pending_queue.sort(
+            key=lambda inc: (
+                severity_order.get(inc.severity.value, 99),
+                0 if inc.required_capability.value == "ALS" else 1,
+                -inc.reported_at_sim_time_sec,  # older incidents first
+            )
+        )
+
     def step(self, new_incidents: list[Incident] | None = None) -> None:
         """Advance the simulation by one time step `dt`."""
         self.current_tick += 1
         self.sim_time_seconds += self.dt
 
+        # Update dynamic traffic model
+        if self.traffic_model:
+            self.traffic_model.update(self.sim_time_seconds)
+
+        # Process hospital discharges first
+        for hospital in self.hospitals:
+            hospital.process_discharges(self.sim_time_seconds)
+
         if new_incidents:
             for inc in new_incidents:
                 self.pending_queue.append(inc)
                 self.active_incidents[inc.id] = inc
+
+        # Sort pending queue by priority before dispatch
+        self._sort_pending_by_priority()
 
         unresolved_queue: list[Incident] = []
         available_ambulances = [a for a in self.ambulances if a.is_available]
@@ -256,7 +296,18 @@ class CitySimulationEngine:
                         amb.current_node_id = target_hosp.node_id
                         amb.latitude = target_hosp.latitude
                         amb.longitude = target_hosp.longitude
-                        target_hosp.occupied_er_beds = min(target_hosp.total_er_beds, target_hosp.occupied_er_beds + 1)
+
+                        # Determine bed type and admit patient
+                        bed_type = "icu" if inc and inc.severity.value in ("critical", "high") else "er"
+                        stay_duration = target_hosp.avg_stay_duration_seconds
+                        if inc and inc.severity.value == "critical":
+                            stay_duration *= 1.5  # Critical patients stay longer
+                        target_hosp.admit_patient(
+                            incident_id=inc.id if inc else "unknown",
+                            bed_type=bed_type,
+                            current_time_sec=self.sim_time_seconds,
+                            stay_duration_sec=stay_duration,
+                        )
 
                     amb.status = AmbulanceStatus.AT_HOSPITAL_HANDOVER
                     amb.time_in_current_state_sec = 0.0

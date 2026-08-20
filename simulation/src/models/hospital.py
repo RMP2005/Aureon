@@ -24,6 +24,16 @@ class HospitalSpecialty(str, Enum):
 
 
 @dataclass
+class PatientStay:
+    """Tracks an active patient stay in the hospital."""
+
+    incident_id: str
+    bed_type: str  # "er" or "icu"
+    admitted_at_sec: float
+    stay_duration_sec: float
+
+
+@dataclass
 class Hospital:
     """Medical center capable of receiving emergency patients."""
 
@@ -38,8 +48,65 @@ class Hospital:
     total_icu_beds: int = 15
     occupied_icu_beds: int = 5
     avg_triage_time_min: float = 8.0  # Time to handover patient
+    avg_stay_duration_seconds: float = 7200.0  # Average patient stay (2 hours)
     is_diverting: bool = False  # If true, hospital is not accepting new severe emergencies
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    # Active patient tracking for discharge scheduling
+    _active_patients: list[PatientStay] = field(default_factory=list, repr=False)
+
+    @property
+    def active_patient_count(self) -> int:
+        """Number of patients currently admitted."""
+        return len(self._active_patients)
+
+    def admit_patient(
+        self,
+        incident_id: str,
+        bed_type: str,
+        current_time_sec: float,
+        stay_duration_sec: float | None = None,
+    ) -> bool:
+        """Admit a patient and occupy a bed. Returns True if admission succeeded."""
+        duration = stay_duration_sec or self.avg_stay_duration_seconds
+
+        if bed_type == "icu":
+            if self.occupied_icu_beds >= self.total_icu_beds:
+                return False
+            self.occupied_icu_beds += 1
+        else:
+            if self.occupied_er_beds >= self.total_er_beds:
+                return False
+            self.occupied_er_beds += 1
+
+        self._active_patients.append(
+            PatientStay(
+                incident_id=incident_id,
+                bed_type=bed_type,
+                admitted_at_sec=current_time_sec,
+                stay_duration_sec=duration,
+            )
+        )
+        return True
+
+    def process_discharges(self, current_time_sec: float) -> int:
+        """Release beds for patients whose stay has completed. Returns count discharged."""
+        still_active: list[PatientStay] = []
+        discharged = 0
+
+        for patient in self._active_patients:
+            elapsed = current_time_sec - patient.admitted_at_sec
+            if elapsed >= patient.stay_duration_sec:
+                if patient.bed_type == "icu":
+                    self.occupied_icu_beds = max(0, self.occupied_icu_beds - 1)
+                else:
+                    self.occupied_er_beds = max(0, self.occupied_er_beds - 1)
+                discharged += 1
+            else:
+                still_active.append(patient)
+
+        self._active_patients = still_active
+        return discharged
 
     @property
     def er_occupancy_ratio(self) -> float:

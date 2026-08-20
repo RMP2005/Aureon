@@ -1,0 +1,70 @@
+{
+  "scale": "small",
+  "description": "32-node legacy Bangalore graph",
+  "network": {
+    "nodes": 32,
+    "edges": 76
+  },
+  "experiment_meta": {
+    "num_seeds": 20,
+    "seeds_used": [
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61
+    ],
+    "duration_minutes": 60.0,
+    "fleet_size": 14,
+    "hospital_count": 6,
+    "dynamic_traffic": true,
+    "traffic_events": false,
+    "intersection_delays": false
+  },
+  "baseline": {
+    "rt_mean_min": 11.17,
+    "rt_ci": [
+      9.85,
+      12.49
+    ],
+    "rt_p50_min": 11.43,
+    "rt_p90_min": 42.62,
+    "crit_rt_mean_min": 10.91,
+    "completed_mean": 5.4,
+    "distance_km_mean": 172.2
+  },
+  "heuristic_aureon": {
+    "rt_mean_min": 13.14,
+    "rt_ci": [
+      12.2,
+      14.09
+    ],
+    "rt_p50_min": 12.95,
+    "rt_p90_min": 46.38,
+    "crit_rt_mean_min": 12.74,
+    "completed_mean": 4.7,
+    "distance_km_mean": 185.3,
+    "improvement_pct": -17.71
+  },
+  "performance": {
+    "build_time_sec": 0.0,
+    "mean_per_seed_sec": 0.01,
+    "total_eval_sec": 0.2
+  },
+  "limitation": null
+}
