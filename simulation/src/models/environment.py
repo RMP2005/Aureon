@@ -6,9 +6,8 @@ factors that affect the simulation.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum
-
-from pydantic import BaseModel, Field
 
 
 class WeatherCondition(str, Enum):
@@ -47,26 +46,28 @@ class WindDirection(str, Enum):
     NW = "NW"
 
 
-class WeatherState(BaseModel):
+@dataclass
+class WeatherState:
     """Current weather conditions in the simulation."""
 
     condition: WeatherCondition = WeatherCondition.CLEAR
-    temperature_celsius: float = Field(default=22.0, ge=-50.0, le=60.0)
-    humidity_percent: float = Field(default=45.0, ge=0.0, le=100.0)
-    wind_speed_kmh: float = Field(default=10.0, ge=0.0, le=400.0)
+    temperature_celsius: float = 22.0
+    humidity_percent: float = 45.0
+    wind_speed_kmh: float = 10.0
     wind_direction: WindDirection = WindDirection.N
-    visibility_km: float = Field(default=10.0, ge=0.0, le=100.0)
-    precipitation_mm_hr: float = Field(default=0.0, ge=0.0)
+    visibility_km: float = 10.0
+    precipitation_mm_hr: float = 0.0
 
 
-class EnvironmentState(BaseModel):
+@dataclass
+class EnvironmentState:
     """Complete environment state for the simulation."""
 
-    weather: WeatherState = Field(default_factory=WeatherState)
+    weather: WeatherState = field(default_factory=WeatherState)
     time_of_day: TimeOfDay = TimeOfDay.MORNING
-    simulation_hour: float = Field(default=8.0, ge=0.0, lt=24.0)
-    air_quality_index: int = Field(default=50, ge=0, le=500)
-    noise_level_db: float = Field(default=55.0, ge=0.0, le=200.0)
+    simulation_hour: float = 8.0
+    air_quality_index: int = 50
+    noise_level_db: float = 55.0
 
     def advance_time(self, hours: float) -> None:
         """Advance simulation clock and update time of day."""

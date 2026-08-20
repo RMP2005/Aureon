@@ -1,6 +1,6 @@
 """Default scenario configuration for initial city state."""
 
-from src.models.city import (
+from ..models.city import (
     CityState,
     CityZone,
     GeoCoordinate,
@@ -8,7 +8,7 @@ from src.models.city import (
     TrafficState,
     ZoneType,
 )
-from src.models.environment import EnvironmentState, WeatherState
+from ..models.environment import EnvironmentState, WeatherState
 
 
 def create_default_city() -> CityState:

@@ -1,6 +1,6 @@
 """API request and response schemas."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -15,7 +15,7 @@ class ResponseEnvelope(BaseModel):
     status: str = "ok"
     data: Any = None
     error: str | None = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # --- Health ---
@@ -29,6 +29,23 @@ class HealthResponse(BaseModel):
 
 
 # --- Simulation ---
+
+class SimulationRunRequest(BaseModel):
+    """Request to execute a digital twin simulation run."""
+
+    strategy: str = Field(default="aureon", description="'aureon' or 'baseline'")
+    duration_minutes: float = Field(default=60.0, ge=5.0, le=1440.0)
+    incident_rate_per_hour: float = Field(default=12.0, ge=1.0, le=60.0)
+    seed: int = Field(default=42)
+
+
+class SimulationCompareRequest(BaseModel):
+    """Request to benchmark Baseline vs Aureon on identical conditions."""
+
+    duration_minutes: float = Field(default=60.0, ge=5.0, le=1440.0)
+    incident_rate_per_hour: float = Field(default=14.0, ge=1.0, le=60.0)
+    seed: int = Field(default=42)
+
 
 class SimulationStatus(str, Enum):
     """Simulation lifecycle states."""
@@ -55,7 +72,7 @@ class SimulationResponse(BaseModel):
     name: str
     status: SimulationStatus
     tick: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # --- ML ---

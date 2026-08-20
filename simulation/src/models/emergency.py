@@ -1,17 +1,12 @@
-"""Emergency event models for urban simulation.
-
-Defines event types, severity levels, response protocols,
-and event lifecycle management.
-"""
+"""Emergency event models for urban simulation."""
 
 from __future__ import annotations
 
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
-
-from src.models.city import GeoCoordinate
+from .city import GeoCoordinate
 
 
 class EmergencyType(str, Enum):
@@ -49,39 +44,42 @@ class EventStatus(str, Enum):
     RESOLVED = "resolved"
 
 
-class AffectedArea(BaseModel):
+@dataclass
+class AffectedArea:
     """Geographic area affected by an emergency."""
 
     center: GeoCoordinate
-    radius_km: float = Field(default=0.5, gt=0.0)
-    affected_population: int = Field(default=0, ge=0)
-    affected_zone_ids: list[str] = Field(default_factory=list)
+    radius_km: float = 0.5
+    affected_population: int = 0
+    affected_zone_ids: list[str] = field(default_factory=list)
 
 
-class ResponseAllocation(BaseModel):
+@dataclass
+class ResponseAllocation:
     """Resources allocated to an emergency response."""
 
-    ambulances: int = Field(default=0, ge=0)
-    fire_trucks: int = Field(default=0, ge=0)
-    police_units: int = Field(default=0, ge=0)
-    medical_teams: int = Field(default=0, ge=0)
-    estimated_response_time_min: float = Field(default=0.0, ge=0.0)
+    ambulances: int = 0
+    fire_trucks: int = 0
+    police_units: int = 0
+    medical_teams: int = 0
+    estimated_response_time_min: float = 0.0
 
 
-class EmergencyEvent(BaseModel):
+@dataclass
+class EmergencyEvent:
     """A single emergency event in the simulation."""
 
     id: str
     event_type: EmergencyType
     severity: SeverityLevel
+    affected_area: AffectedArea
     status: EventStatus = EventStatus.DETECTED
     title: str = ""
     description: str = ""
-    affected_area: AffectedArea
-    response: ResponseAllocation = Field(default_factory=ResponseAllocation)
-    casualties: int = Field(default=0, ge=0)
-    property_damage_estimate_usd: float = Field(default=0.0, ge=0.0)
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    response: ResponseAllocation = field(default_factory=ResponseAllocation)
+    casualties: int = 0
+    property_damage_estimate_usd: float = 0.0
+    detected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: datetime | None = None
 
     @property

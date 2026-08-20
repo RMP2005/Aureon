@@ -1,6 +1,12 @@
 """Simulation domain models."""
 
-from src.models.city import (
+from .ambulance import (
+    Ambulance,
+    AmbulanceCapability,
+    AmbulanceStatus,
+    create_default_bangalore_fleet,
+)
+from .city import (
     CityState,
     CityZone,
     GeoCoordinate,
@@ -9,7 +15,7 @@ from src.models.city import (
     TrafficState,
     ZoneType,
 )
-from src.models.emergency import (
+from .emergency import (
     AffectedArea,
     EmergencyEvent,
     EmergencyType,
@@ -17,16 +23,24 @@ from src.models.emergency import (
     ResponseAllocation,
     SeverityLevel,
 )
-from src.models.environment import (
+from .environment import (
     EnvironmentState,
     TimeOfDay,
     WeatherCondition,
     WeatherState,
     WindDirection,
 )
+from .hospital import (
+    Hospital,
+    HospitalSpecialty,
+    get_default_bangalore_hospitals,
+)
 
 __all__ = [
     "AffectedArea",
+    "Ambulance",
+    "AmbulanceCapability",
+    "AmbulanceStatus",
     "CityState",
     "CityZone",
     "EmergencyEvent",
@@ -34,6 +48,8 @@ __all__ = [
     "EnvironmentState",
     "EventStatus",
     "GeoCoordinate",
+    "Hospital",
+    "HospitalSpecialty",
     "InfrastructureStatus",
     "ResourcePool",
     "ResponseAllocation",
@@ -44,4 +60,6 @@ __all__ = [
     "WeatherState",
     "WindDirection",
     "ZoneType",
+    "create_default_bangalore_fleet",
+    "get_default_bangalore_hospitals",
 ]

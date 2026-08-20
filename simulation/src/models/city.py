@@ -6,9 +6,9 @@ and resource availability.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum
-
-from pydantic import BaseModel, Field
+from typing import Any
 
 
 class ZoneType(str, Enum):
@@ -33,34 +33,37 @@ class InfrastructureStatus(str, Enum):
     OFFLINE = "offline"
 
 
-class GeoCoordinate(BaseModel):
+@dataclass
+class GeoCoordinate:
     """Geographic coordinate."""
 
-    latitude: float = Field(..., ge=-90.0, le=90.0)
-    longitude: float = Field(..., ge=-180.0, le=180.0)
+    latitude: float
+    longitude: float
 
 
-class CityZone(BaseModel):
+@dataclass
+class CityZone:
     """A discrete zone within the city."""
 
     id: str
     name: str
     zone_type: ZoneType
     center: GeoCoordinate
-    area_sq_km: float = Field(default=1.0, gt=0.0)
-    population: int = Field(default=0, ge=0)
-    population_density: float = Field(default=0.0, ge=0.0)
+    area_sq_km: float = 1.0
+    population: int = 0
+    population_density: float = 0.0
     infrastructure_status: InfrastructureStatus = InfrastructureStatus.OPERATIONAL
 
 
-class ResourcePool(BaseModel):
+@dataclass
+class ResourcePool:
     """Available emergency response resources."""
 
-    ambulances: int = Field(default=0, ge=0)
-    fire_trucks: int = Field(default=0, ge=0)
-    police_units: int = Field(default=0, ge=0)
-    medical_teams: int = Field(default=0, ge=0)
-    shelters_capacity: int = Field(default=0, ge=0)
+    ambulances: int = 0
+    fire_trucks: int = 0
+    police_units: int = 0
+    medical_teams: int = 0
+    shelters_capacity: int = 0
 
     @property
     def total_units(self) -> int:
@@ -73,22 +76,24 @@ class ResourcePool(BaseModel):
         )
 
 
-class TrafficState(BaseModel):
+@dataclass
+class TrafficState:
     """City-wide traffic conditions."""
 
-    congestion_index: float = Field(default=0.3, ge=0.0, le=1.0)
-    average_speed_kmh: float = Field(default=35.0, ge=0.0)
-    incidents_active: int = Field(default=0, ge=0)
+    congestion_index: float = 0.3
+    average_speed_kmh: float = 35.0
+    incidents_active: int = 0
 
 
-class CityState(BaseModel):
+@dataclass
+class CityState:
     """Complete city state for the simulation."""
 
     name: str = "Aureon City"
-    total_population: int = Field(default=500_000, ge=0)
-    zones: list[CityZone] = Field(default_factory=list)
-    resources: ResourcePool = Field(default_factory=ResourcePool)
-    traffic: TrafficState = Field(default_factory=TrafficState)
-    power_grid_load_percent: float = Field(default=65.0, ge=0.0, le=100.0)
-    water_system_pressure_psi: float = Field(default=60.0, ge=0.0)
-    communications_uptime_percent: float = Field(default=99.9, ge=0.0, le=100.0)
+    total_population: int = 500_000
+    zones: list[CityZone] = field(default_factory=list)
+    resources: ResourcePool = field(default_factory=ResourcePool)
+    traffic: TrafficState = field(default_factory=TrafficState)
+    power_grid_load_percent: float = 65.0
+    water_system_pressure_psi: float = 60.0
+    communications_uptime_percent: float = 99.9

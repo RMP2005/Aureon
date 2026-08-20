@@ -1,40 +1,155 @@
-"""Simulation orchestration service."""
+"""Simulation service bridging FastAPI backend with the Digital Twin Simulation Engine."""
+
+from __future__ import annotations
 
 import logging
+import sys
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+# Ensure workspace root and simulation are in sys.path
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+SIMULATION_PATH = WORKSPACE_ROOT / "simulation"
+
+for p in (str(WORKSPACE_ROOT), str(SIMULATION_PATH)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from simulation.src.dispatch.aureon_intelligence import AureonDecisionEngine
+    from simulation.src.dispatch.baseline import NearestAvailableStrategy
+    from simulation.src.engine.city_engine import CitySimulationEngine
+    from simulation.src.evaluation.evaluator import SimulationEvaluator
+    from simulation.src.generators.incident_generator import ScenarioGenerator
+    from simulation.src.models.ambulance import create_default_bangalore_fleet
+    from simulation.src.models.hospital import get_default_bangalore_hospitals
+    from simulation.src.network.bangalore_map import build_bangalore_network
+except ImportError:
+    from src.dispatch.aureon_intelligence import AureonDecisionEngine  # type: ignore
+    from src.dispatch.baseline import NearestAvailableStrategy  # type: ignore
+    from src.engine.city_engine import CitySimulationEngine  # type: ignore
+    from src.evaluation.evaluator import SimulationEvaluator  # type: ignore
+    from src.generators.incident_generator import ScenarioGenerator  # type: ignore
+    from src.models.ambulance import create_default_bangalore_fleet  # type: ignore
+    from src.models.hospital import get_default_bangalore_hospitals  # type: ignore
+    from src.network.bangalore_map import build_bangalore_network  # type: ignore
 
 logger = logging.getLogger("aureon.services.simulation")
 
 
 class SimulationService:
-    """Manages simulation lifecycle and state.
-
-    This service will integrate with the simulation engine
-    package to create, run, and manage digital twin simulations.
-    """
+    """Manages digital twin simulation runs, state snapshots, and strategy comparisons."""
 
     def __init__(self) -> None:
-        self._simulations: dict[str, dict] = {}
-        logger.info("SimulationService initialized")
+        self.road_network = build_bangalore_network()
+        self.hospitals = get_default_bangalore_hospitals()
+        self.ambulances = create_default_bangalore_fleet()
 
-    async def create(self, name: str, config: dict) -> str:
-        """Create a new simulation instance."""
-        import uuid
-        sim_id = str(uuid.uuid4())
-        self._simulations[sim_id] = {
-            "name": name,
-            "config": config,
-            "status": "idle",
-        }
-        logger.info("Created simulation %s: %s", sim_id, name)
-        return sim_id
+        # Active default simulation engine
+        self.active_engine = CitySimulationEngine(
+            road_network=self.road_network,
+            hospitals=self.hospitals,
+            ambulances=self.ambulances,
+            strategy=AureonDecisionEngine(),
+        )
 
-    async def get(self, sim_id: str) -> dict | None:
-        """Get a simulation by ID."""
-        return self._simulations.get(sim_id)
+        # Store historical simulation run results: run_id -> dict
+        self._runs: dict[str, dict[str, Any]] = {}
+        logger.info("SimulationService initialized with Bangalore Digital Twin topology")
 
-    async def list_all(self) -> list[dict]:
-        """List all simulations."""
-        return [
-            {"id": sid, **data}
-            for sid, data in self._simulations.items()
+    def get_city_state(self) -> dict[str, Any]:
+        """Retrieve real-time state of the city digital twin."""
+        return self.active_engine.get_current_state()
+
+    def run_simulation(
+        self,
+        strategy_name: str = "aureon",
+        duration_minutes: float = 60.0,
+        incident_rate_per_hour: float = 12.0,
+        seed: int = 42,
+    ) -> dict[str, Any]:
+        """Execute a full scenario simulation run."""
+        run_id = f"sim_{uuid.uuid4().hex[:8]}"
+
+        strategy = (
+            AureonDecisionEngine()
+            if strategy_name.lower() in ("aureon", "intelligent", "ai")
+            else NearestAvailableStrategy()
+        )
+
+        fleet = create_default_bangalore_fleet()
+        engine = CitySimulationEngine(
+            road_network=self.road_network,
+            hospitals=get_default_bangalore_hospitals(),
+            ambulances=fleet,
+            strategy=strategy,
+        )
+
+        candidate_nodes = [
+            (n.id, n.name, n.latitude, n.longitude)
+            for n in self.road_network.nodes.values()
+            if not n.is_station and not n.is_hospital
         ]
+        generator = ScenarioGenerator(node_ids_with_coords=candidate_nodes, seed=seed)
+        schedule = generator.generate_scenario_schedule(
+            duration_minutes=duration_minutes,
+            incident_rate_per_hour=incident_rate_per_hour,
+        )
+
+        metrics = engine.run_scenario(schedule=schedule, duration_minutes=duration_minutes)
+
+        result_data = {
+            "run_id": run_id,
+            "strategy": strategy.name,
+            "parameters": {
+                "duration_minutes": duration_minutes,
+                "incident_rate_per_hour": incident_rate_per_hour,
+                "seed": seed,
+            },
+            "metrics": metrics.to_dict(),
+            "dispatch_log_sample": engine.dispatch_log[:15],
+            "executed_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        self._runs[run_id] = result_data
+        return result_data
+
+    def run_comparison(
+        self,
+        duration_minutes: float = 60.0,
+        incident_rate_per_hour: float = 14.0,
+        seed: int = 42,
+    ) -> dict[str, Any]:
+        """Run identical scenario comparison between Baseline and Aureon intelligence."""
+        comparison = SimulationEvaluator.run_benchmark(
+            duration_minutes=duration_minutes,
+            incident_rate_per_hour=incident_rate_per_hour,
+            seed=seed,
+        )
+        report = comparison.to_dict()
+        run_id = f"cmp_{uuid.uuid4().hex[:8]}"
+        report["comparison_id"] = run_id
+        report["executed_at"] = datetime.now(timezone.utc).isoformat()
+        self._runs[run_id] = report
+        return report
+
+    def get_run_results(self, run_id: str) -> dict[str, Any] | None:
+        """Get metrics and logs of a past simulation run."""
+        return self._runs.get(run_id)
+
+    def list_runs(self) -> list[dict[str, Any]]:
+        """List summary of all completed simulation runs."""
+        return [
+            {
+                "run_id": rid,
+                "type": "comparison" if "comparison_id" in data else "single_run",
+                "executed_at": data.get("executed_at"),
+            }
+            for rid, data in self._runs.items()
+        ]
+
+
+# Singleton instance for the backend
+simulation_service = SimulationService()
