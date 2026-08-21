@@ -162,6 +162,7 @@ class Phase5Benchmark:
         from ..maps.intersection_model import IntersectionDelayModel, NoIntersectionDelay
 
         config = get_config(BenchmarkScale(scale))
+        hospital_scale = "large" if scale == "xlarge" else scale
         logger.info("Running %s benchmark: %s", scale, config.description)
 
         # Build network
@@ -174,14 +175,22 @@ class Phase5Benchmark:
                 from ..maps.osm_provider import OSMProvider
                 from ..maps.graph_processor import OSMGraphProcessor
 
-                provider = OSMProvider()
+                provider = OSMProvider(source=config.osm_source)
                 G = provider.load()
                 processor = OSMGraphProcessor()
-                road_network = processor.convert(G, network_name=f"Bangalore OSM ({scale})")
+                # Inject hospitals and stations so they are routable in the graph
+                _hosp_nodes_for_graph = BangaloreHospitalDataset.get_hospitals(hospital_scale)
+                from ..maps.ambulance_stations import get_stations as _get_stations
+                _station_nodes = _get_stations()
+                road_network = processor.convert(
+                    G, network_name=f"Bangalore OSM ({scale})",
+                    hospitals=_hosp_nodes_for_graph, stations=_station_nodes,
+                )
                 stats = processor.stats
                 logger.info(
-                    "OSM graph loaded: %d nodes, %d edges (%.2fs)",
-                    stats.aureon_node_count, stats.aureon_edge_count, stats.process_time_sec,
+                    "OSM graph loaded (%s): %d nodes, %d edges (%.2fs)",
+                    config.osm_source, stats.aureon_node_count,
+                    stats.aureon_edge_count, stats.process_time_sec,
                 )
             except (FileNotFoundError, Exception) as e:
                 osm_available = False
@@ -198,14 +207,15 @@ class Phase5Benchmark:
 
         build_time = time.time() - t_build_start
 
-        # Build hospitals
-        hospitals = BangaloreHospitalDataset.get_hospitals(scale)
+        # Build hospitals (xlarge uses the same 28 hospitals as large)
+        hospitals = BangaloreHospitalDataset.get_hospitals(hospital_scale)
 
         # Build fleet
         fleet_configs = {
             "small": FLEET_SMALL,
             "medium": FLEET_MEDIUM,
             "large": FLEET_LARGE,
+            "xlarge": FLEET_LARGE,
         }
         fleet = generate_fleet(fleet_configs[scale])
 

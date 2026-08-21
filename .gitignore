@@ -1,0 +1,8 @@
+# OSM datasets
+simulation/data/
+*.osm.pbf
+*.graphml
+
+# Python cache
+__pycache__/
+*.pyc

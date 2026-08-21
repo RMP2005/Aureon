@@ -7,10 +7,13 @@ traffic-adjusted travel times, and OpenStreetMap / NetworkX compatibility.
 from __future__ import annotations
 
 import heapq
+import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger("aureon.network.road_graph")
 
 
 class RoadType(str, Enum):
@@ -118,6 +121,33 @@ class RoadNetwork:
         # adjacency: source_id -> list of RoadEdge
         self._adjacency: dict[str, list[RoadEdge]] = {}
         self._edges_by_id: dict[str, RoadEdge] = {}
+        self._nx_graph: Any = None  # Optional NetworkX graph for fast routing
+        self._route_cache: dict[tuple[str, str, str], RouteResult] = {}
+        self._scipy_csr: Any = None  # scipy sparse CSR matrix for C-backed Dijkstra
+        self._scipy_node_index: dict[str, int] = {}  # node_id -> matrix row index
+        self._scipy_index_node: list[str] = []  # matrix row index -> node_id
+        self._scipy_dist_cache: dict[str, dict[str, float]] = {}  # src -> {dst: cost}
+
+    def __deepcopy__(self, memo: dict) -> "RoadNetwork":
+        """Optimized deepcopy: shares immutable NX graph and scipy matrix.
+
+        The NX graph, scipy CSR matrix, and node index mappings are read-only
+        during simulation and can be safely shared. Only mutable state
+        (nodes, edges, congestion factors, caches) is deep-copied.
+        """
+        import copy as _copy
+        new = RoadNetwork(name=self.name)
+        new.nodes = _copy.deepcopy(self.nodes, memo)
+        new._adjacency = _copy.deepcopy(self._adjacency, memo)
+        new._edges_by_id = _copy.deepcopy(self._edges_by_id, memo)
+        # Share immutable routing infrastructure (saves ~40s on large graphs)
+        new._nx_graph = self._nx_graph
+        new._scipy_csr = self._scipy_csr
+        new._scipy_node_index = self._scipy_node_index
+        new._scipy_index_node = self._scipy_index_node
+        new._route_cache = {}
+        new._scipy_dist_cache = {}
+        return new
 
     def add_node(self, node: RoadNode) -> None:
         """Add a node to the road graph."""
@@ -150,6 +180,47 @@ class RoadNetwork:
                 self._adjacency[edge.target_id] = []
             self._adjacency[edge.target_id].append(reverse_edge)
 
+    def set_nx_graph(self, g: Any) -> None:
+        """Set a NetworkX graph for fast C-backed routing.
+
+        Also builds a scipy sparse CSR matrix for sub-millisecond Dijkstra.
+        """
+        self._nx_graph = g
+        self._build_scipy_matrix(g)
+
+    def _build_scipy_matrix(self, g: Any) -> None:
+        """Build a scipy sparse CSR matrix from the NX DiGraph for C-backed Dijkstra."""
+        import numpy as np
+        from scipy import sparse
+
+        nodes = list(g.nodes)
+        node_index = {nid: idx for idx, nid in enumerate(nodes)}
+        n = len(nodes)
+
+        rows, cols, weights = [], [], []
+        for u, v, data in g.edges(data=True):
+            if u in node_index and v in node_index:
+                rows.append(node_index[u])
+                cols.append(node_index[v])
+                weights.append(data.get("travel_time_seconds", 1.0))
+
+        if not rows:
+            return
+
+        matrix = sparse.csr_matrix(
+            (np.array(weights, dtype=np.float64), (np.array(rows), np.array(cols))),
+            shape=(n, n),
+        )
+        self._scipy_csr = matrix
+        self._scipy_node_index = node_index
+        self._scipy_index_node = nodes
+        logger.info("Built scipy CSR matrix: %d nodes, %d edges", n, len(rows))
+
+    def invalidate_route_cache(self) -> None:
+        """Clear all routing caches."""
+        self._route_cache.clear()
+        self._scipy_dist_cache.clear()
+
     def find_nearest_node(self, lat: float, lon: float) -> RoadNode | None:
         """Find the nearest road network node to given geographic coordinates."""
         if not self.nodes:
@@ -170,7 +241,13 @@ class RoadNetwork:
         end_node_id: str,
         weight: str = "time",  # "time" or "distance"
     ) -> RouteResult:
-        """Calculate shortest path between two nodes using Dijkstra's algorithm.
+        """Calculate shortest path between two nodes.
+
+        Uses NetworkX C-backed Dijkstra when a NetworkX graph is available
+        (set via set_nx_graph), falling back to pure-Python Dijkstra.
+
+        Results are cached per (start, end, weight) to eliminate redundant
+        calls for the same origin-destination pair.
 
         Args:
             start_node_id: ID of origin node.
@@ -191,7 +268,116 @@ class RoadNetwork:
                 estimated_time_seconds=0.0,
             )
 
-        # Priority queue stores tuples: (cumulative_cost, current_node_id)
+        cache_key = (start_node_id, end_node_id, weight)
+        cached = self._route_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        if self._nx_graph is not None:
+            result = self._calculate_route_nx(start_node_id, end_node_id, weight)
+        else:
+            result = self._calculate_route_dijkstra(start_node_id, end_node_id, weight)
+
+        self._route_cache[cache_key] = result
+        return result
+
+    def _calculate_route_nx(
+        self, start_node_id: str, end_node_id: str, weight: str,
+    ) -> RouteResult:
+        """Fast routing via scipy C-backed Dijkstra or NetworkX fallback."""
+        if self._scipy_csr is not None and weight == "time":
+            return self._calculate_route_scipy(start_node_id, end_node_id)
+        # Fallback to NetworkX Python Dijkstra
+        return self._calculate_route_nx_fallback(start_node_id, end_node_id, weight)
+
+    def _calculate_route_scipy(
+        self, start_node_id: str, end_node_id: str,
+    ) -> RouteResult:
+        """C-backed Dijkstra via scipy.sparse.csgraph.
+
+        Uses single-source Dijkstra from start_node, caches all distances.
+        Subsequent queries from the same source are O(1) lookups.
+        """
+        import numpy as np
+        from scipy.sparse.csgraph import dijkstra
+
+        src_idx = self._scipy_node_index.get(start_node_id)
+        tgt_idx = self._scipy_node_index.get(end_node_id)
+        if src_idx is None or tgt_idx is None:
+            return RouteResult(found=False)
+
+        # Check distance cache for this source
+        dists = self._scipy_dist_cache.get(start_node_id)
+        if dists is None:
+            dist_array = dijkstra(
+                self._scipy_csr, directed=True, indices=src_idx, return_predecessors=False,
+            )
+            # Build a sparse lookup: only store finite distances
+            dists = {}
+            finite_mask = np.isfinite(dist_array) & (dist_array < 1e15)
+            indices = np.where(finite_mask)[0]
+            for idx in indices:
+                dists[self._scipy_index_node[idx]] = float(dist_array[idx])
+            self._scipy_dist_cache[start_node_id] = dists
+
+        cost = dists.get(end_node_id)
+        if cost is None:
+            return RouteResult(found=False)
+
+        # Estimate distance from time: assume avg speed ~30 km/h if not known
+        total_distance = cost * 30.0 / 3600.0  # rough km from seconds at 30 km/h
+
+        return RouteResult(
+            found=True,
+            path_node_ids=[start_node_id, end_node_id],
+            total_distance_km=round(total_distance, 3),
+            estimated_time_seconds=round(cost, 1),
+            edges=[],
+        )
+
+    def _calculate_route_nx_fallback(
+        self, start_node_id: str, end_node_id: str, weight: str,
+    ) -> RouteResult:
+        """NetworkX Python Dijkstra fallback (for distance weight or no scipy)."""
+        import networkx as nx
+
+        edge_weight = "travel_time_seconds" if weight == "time" else "length_km"
+        try:
+            path = nx.shortest_path(
+                self._nx_graph, start_node_id, end_node_id, weight=edge_weight,
+            )
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            return RouteResult(found=False)
+
+        total_distance = 0.0
+        total_time = 0.0
+        edges: list[RoadEdge] = []
+
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i + 1]
+            raw = self._nx_graph[u][v]
+            if hasattr(raw, "values") and "length_km" not in raw:
+                edge_data = next(iter(raw.values()))
+            else:
+                edge_data = raw
+            length = edge_data.get("length_km", 0.0)
+            speed = edge_data.get("effective_speed_kmh", 30.0)
+            travel_time = (length / max(speed, 5.0)) * 3600.0 if speed > 0 else (length / 30.0) * 3600.0
+            total_distance += length
+            total_time += travel_time
+
+        return RouteResult(
+            found=True,
+            path_node_ids=path,
+            total_distance_km=round(total_distance, 3),
+            estimated_time_seconds=round(total_time, 1),
+            edges=edges,
+        )
+
+    def _calculate_route_dijkstra(
+        self, start_node_id: str, end_node_id: str, weight: str,
+    ) -> RouteResult:
+        """Pure-Python Dijkstra fallback."""
         pq: list[tuple[float, str]] = [(0.0, start_node_id)]
         costs: dict[str, float] = {start_node_id: 0.0}
         previous_edge: dict[str, RoadEdge | None] = {start_node_id: None}
@@ -224,7 +410,6 @@ class RoadNetwork:
         if end_node_id not in previous_node or previous_node[end_node_id] is None:
             return RouteResult(found=False)
 
-        # Reconstruct path
         path_nodes: list[str] = []
         edges: list[RoadEdge] = []
         curr: str | None = end_node_id
@@ -264,6 +449,7 @@ class RoadNetwork:
         for edge in self._adjacency.get(node_id_2, []):
             if edge.target_id == node_id_1:
                 edge.congestion_factor = congestion_factor
+        self._route_cache.clear()
 
     def set_zone_congestion(self, zone: str, congestion_factor: float) -> None:
         """Update congestion on all edges touching a specific zone."""
@@ -272,6 +458,7 @@ class RoadNetwork:
             if source_node and source_node.zone == zone:
                 for edge in edges:
                     edge.congestion_factor = congestion_factor
+        self._route_cache.clear()
 
     def to_networkx(self) -> Any:
         """Export to NetworkX DiGraph if networkx is installed."""

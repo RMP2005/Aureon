@@ -418,5 +418,127 @@ class TestPhase5Benchmark(unittest.TestCase):
         self.assertLessEqual(ci[0], ci[1])
 
 
+class TestPBFIngestion(unittest.TestCase):
+    """Tests for PBF-based OSM ingestion via pyrosm."""
+
+    def test_pbf_provider_loads(self) -> None:
+        """OSMProvider with source='pbf' loads graph from .osm.pbf file."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        self.assertGreater(G.number_of_nodes(), 100_000)
+        self.assertGreater(G.number_of_edges(), 100_000)
+        stats = provider.last_stats
+        self.assertEqual(stats.source, "pbf")
+        self.assertGreater(stats.load_time_sec, 0)
+
+    def test_pbf_node_attributes(self) -> None:
+        """Nodes from PBF graph have x/y coordinates."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        nodes = list(G.nodes(data=True))
+        self.assertGreater(len(nodes), 0)
+        sample = nodes[0][1]
+        self.assertIn("x", sample)
+        self.assertIn("y", sample)
+        self.assertIsInstance(sample["x"], float)
+        self.assertIsInstance(sample["y"], float)
+
+    def test_pbf_edge_attributes(self) -> None:
+        """Edges from PBF graph have highway, oneway, length."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        edges = list(G.edges(data=True))
+        self.assertGreater(len(edges), 0)
+        sample = edges[0][2]
+        self.assertIn("highway", sample)
+        self.assertIn("oneway", sample)
+        self.assertIn("length", sample)
+
+    def test_pbf_auto_discovery(self) -> None:
+        """OSMProvider auto-discovers .osm.pbf files in cache directory."""
+        provider = OSMProvider(source="pbf")
+        pbf_path = provider._find_pbf()
+        self.assertTrue(pbf_path.exists())
+        self.assertTrue(str(pbf_path).endswith(".osm.pbf"))
+
+    def test_pbf_large_file_extract(self) -> None:
+        """Large PBF files trigger osmium extract before pyrosm parsing."""
+        provider = OSMProvider(source="pbf")
+        pbf_path = provider._find_pbf()
+        if pbf_path.stat().st_size > 100 * 1024 * 1024:
+            G = provider.load()
+            self.assertGreater(G.number_of_nodes(), 100_000)
+        else:
+            self.skipTest("PBF file is small enough to parse directly")
+
+    def test_pbf_graph_processor_compatibility(self) -> None:
+        """GraphProcessor converts PBF graph to Aureon RoadNetwork."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        processor = OSMGraphProcessor()
+        road_network = processor.convert(G, network_name="PBF Test")
+        self.assertGreater(len(road_network.nodes), 100_000)
+        self.assertGreater(len(road_network._edges_by_id), 100_000)
+
+    def test_pbf_spatial_index(self) -> None:
+        """KD-tree spatial index works on PBF-derived graph."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        processor = OSMGraphProcessor()
+        processor.convert(G, network_name="PBF Spatial Test")
+
+        import time
+        t0 = time.time()
+        nearest = processor.find_nearest_node(12.9719, 77.6412)  # Indiranagar
+        elapsed_ms = (time.time() - t0) * 1000
+        self.assertIsNotNone(nearest)
+        self.assertLess(elapsed_ms, 100, "Nearest-node query should be <100ms via KD-tree")
+
+    def test_pbf_route_calculation(self) -> None:
+        """Dijkstra route calculation works on PBF-scale graph."""
+        provider = OSMProvider(source="pbf")
+        G = provider.load()
+        processor = OSMGraphProcessor()
+        road_network = processor.convert(G, network_name="PBF Route Test")
+
+        # Indiranagar -> Electronic City
+        src = processor.find_nearest_node(12.9719, 77.6412)
+        tgt = processor.find_nearest_node(12.8399, 77.6770)
+        route = road_network.calculate_route(src, tgt, weight="time")
+        self.assertTrue(route.found)
+        self.assertGreater(route.total_distance_km, 5.0)
+        self.assertGreater(route.estimated_time_seconds, 300)
+
+    def test_pbf_fleet_generation(self) -> None:
+        """Fleet generation works for all sizes at XLARGE scale."""
+        from simulation.src.maps.ambulance_stations import (
+            get_stations, generate_fleet, FLEET_LARGE,
+        )
+        stations = get_stations()
+        self.assertEqual(len(stations), 10)
+        fleet = generate_fleet(FLEET_LARGE)
+        self.assertEqual(len(fleet), 50)
+        station_ids = {s.id for s in stations}
+        for amb in fleet:
+            self.assertIn(amb.base_station_id, station_ids)
+
+    def test_pbf_hospital_dataset(self) -> None:
+        """Hospital dataset returns all 28 hospitals at 'large' scale."""
+        from simulation.src.maps.bangalore_hospitals import BangaloreHospitalDataset
+        large_hospitals = BangaloreHospitalDataset.get_hospitals("large")
+        self.assertEqual(len(large_hospitals), 28)
+
+    def test_xlarge_benchmark_config_exists(self) -> None:
+        """XLARGE benchmark config is defined."""
+        from simulation.src.maps.benchmark_configs import (
+            BenchmarkScale, get_config, get_all_configs,
+        )
+        self.assertIn(BenchmarkScale.XLARGE, get_all_configs())
+        config = get_config(BenchmarkScale.XLARGE)
+        self.assertTrue(config.use_osm)
+        self.assertEqual(config.osm_source, "pbf")
+        self.assertEqual(config.fleet_size, 100)
+
+
 if __name__ == "__main__":
     unittest.main()

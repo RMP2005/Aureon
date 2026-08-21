@@ -1,10 +1,11 @@
 """Standard benchmark configurations for scale testing.
 
-Defines SMALL / MEDIUM / LARGE simulation setups used to measure how
-routing, dispatch, and traffic performance scale with network size:
+Defines SMALL / MEDIUM / LARGE / XLARGE simulation setups used to measure
+how routing, dispatch, and traffic performance scale with network size:
   - SMALL:  legacy 32-node Bangalore graph (fast, deterministic baseline)
   - MEDIUM: OSM subset covering central Bangalore (~5k nodes)
-  - LARGE:  full Bangalore OSM graph (~50k nodes)
+  - LARGE:  full Bangalore OSM graph from cache (~50k nodes)
+  - XLARGE: full Bangalore OSM graph from PBF (~736k nodes)
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ __all__ = [
     "SMALL_CONFIG",
     "MEDIUM_CONFIG",
     "LARGE_CONFIG",
+    "XLARGE_CONFIG",
     "get_config",
     "get_all_configs",
 ]
@@ -30,9 +32,10 @@ __all__ = [
 class BenchmarkScale(str, Enum):
     """Supported benchmark graph scales."""
 
-    SMALL = "small"    # 32-node legacy graph
-    MEDIUM = "medium"  # OSM subset (~5k nodes)
-    LARGE = "large"    # Full OSM graph (~50k nodes)
+    SMALL = "small"      # 32-node legacy graph
+    MEDIUM = "medium"    # OSM subset (~5k nodes)
+    LARGE = "large"      # Full OSM graph from cache (~50k nodes)
+    XLARGE = "xlarge"    # Full OSM graph from PBF (~736k nodes)
 
 
 @dataclass
@@ -45,7 +48,7 @@ class BenchmarkConfig:
     duration_minutes: float
     incident_rate_per_hour: float
     # How to build the network
-    use_osm: bool  # True = load from OSM cache, False = use legacy 32-node
+    use_osm: bool  # True = load from OSM cache or PBF, False = use legacy 32-node
     # Fleet size
     fleet_size: int
     # Traffic
@@ -54,6 +57,8 @@ class BenchmarkConfig:
     enable_intersection_delays: bool
     # Optional bounding box restricting the OSM graph to a subset (MEDIUM)
     osm_subset_bbox: tuple[float, float, float, float] | None = None
+    # Source for OSM graphs: 'cache' (GraphML) or 'pbf' (pyrosm)
+    osm_source: str = "cache"
 
 
 SMALL_CONFIG = BenchmarkConfig(
@@ -81,6 +86,7 @@ MEDIUM_CONFIG = BenchmarkConfig(
     enable_dynamic_traffic=True,
     enable_traffic_events=True,
     enable_intersection_delays=True,
+    osm_source="cache",
 )
 
 LARGE_CONFIG = BenchmarkConfig(
@@ -95,6 +101,22 @@ LARGE_CONFIG = BenchmarkConfig(
     enable_dynamic_traffic=True,
     enable_traffic_events=True,
     enable_intersection_delays=True,
+    osm_source="cache",
+)
+
+XLARGE_CONFIG = BenchmarkConfig(
+    scale=BenchmarkScale.XLARGE,
+    description="Full Bangalore OSM graph from PBF (~736k nodes)",
+    num_seeds=20,
+    duration_minutes=60.0,
+    incident_rate_per_hour=14.0,
+    use_osm=True,
+    osm_subset_bbox=None,  # Uses full Bangalore bbox
+    fleet_size=100,
+    enable_dynamic_traffic=True,
+    enable_traffic_events=True,
+    enable_intersection_delays=True,
+    osm_source="pbf",
 )
 
 
@@ -109,4 +131,5 @@ def get_all_configs() -> dict[BenchmarkScale, BenchmarkConfig]:
         BenchmarkScale.SMALL: SMALL_CONFIG,
         BenchmarkScale.MEDIUM: MEDIUM_CONFIG,
         BenchmarkScale.LARGE: LARGE_CONFIG,
+        BenchmarkScale.XLARGE: XLARGE_CONFIG,
     }

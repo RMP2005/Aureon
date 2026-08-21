@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+import networkx as nx
 import numpy as np
 
 from ..network.road_graph import (
@@ -183,12 +184,18 @@ class OSMGraphProcessor:
         self,
         G: Any,
         network_name: str = "Bangalore OSM Network",
+        hospitals: list | None = None,
+        stations: list | None = None,
     ) -> RoadNetwork:
         """Convert OSMnx MultiDiGraph to Aureon RoadNetwork.
 
         Args:
             G: OSMnx MultiDiGraph (driving network).
             network_name: Name for the resulting RoadNetwork.
+            hospitals: List of Hospital objects to inject into the graph.
+                       Each hospital gets a node + edge to its nearest road node.
+            stations: List of Station objects (ambulance bases) to inject.
+                      Each station gets a node + edge to its nearest road node.
 
         Returns:
             RoadNetwork compatible with CitySimulationEngine.
@@ -230,7 +237,12 @@ class OSMGraphProcessor:
             self._spatial_index = OSMPatialIndex(node_ids, lats, lons)
             t_index = time.time() - t_i0
 
-        # Phase 3: Convert edges
+        # Phase 2b: Build a clean NX DiGraph with string IDs for fast routing
+        nx_graph = nx.DiGraph()
+        for node_id, lat_val, lon_val in zip(node_ids, lats, lons):
+            nx_graph.add_node(node_id, y=lat_val, x=lon_val)
+
+        # Phase 3: Convert edges and populate NX graph
         edge_counter = 0
         for u, v, data in G.edges(data=True):
             highway = data.get("highway", "secondary")
@@ -266,6 +278,80 @@ class OSMGraphProcessor:
             )
             network.add_edge(edge)
 
+            # Enrich NX graph edge with routing attributes
+            travel_time = (length_km / max(speed, 5.0)) * 3600.0
+            nx_edge_attrs = {
+                "effective_speed_kmh": speed,
+                "travel_time_seconds": travel_time,
+                "length_km": length_km,
+            }
+            if oneway:
+                nx_graph.add_edge(str(u), str(v), **nx_edge_attrs)
+            else:
+                nx_graph.add_edge(str(u), str(v), **nx_edge_attrs)
+                nx_graph.add_edge(str(v), str(u), **nx_edge_attrs)
+
+        # Phase 4: Inject hospital and station nodes
+        inject_counter = 0
+        for entity_list, is_hospital in [(hospitals, True), (stations, False)]:
+            if not entity_list:
+                continue
+            for entity in entity_list:
+                lat = entity.latitude
+                lon = entity.longitude
+                eid = entity.node_id if is_hospital else entity.id
+                zone = assign_zone(lat, lon)
+
+                node = RoadNode(
+                    id=eid,
+                    name=eid,
+                    latitude=lat,
+                    longitude=lon,
+                    zone=zone,
+                    is_hospital=is_hospital,
+                    is_station=not is_hospital,
+                )
+                network.add_node(node)
+
+                nearest_road_node = self._spatial_index.nearest_node(lat, lon)
+                dist_km = haversine_distance_km(lat, lon,
+                    network.nodes[nearest_road_node].latitude,
+                    network.nodes[nearest_road_node].longitude,
+                )
+                inject_counter += 1
+                edge_fwd = RoadEdge(
+                    id=f"inj_e{inject_counter}_fwd",
+                    source_id=eid,
+                    target_id=nearest_road_node,
+                    length_km=dist_km,
+                    road_type=RoadType.RESIDENTIAL,
+                    base_speed_kmh=20.0,
+                    one_way=False,
+                )
+                network.add_edge(edge_fwd)
+                inject_counter += 1
+                edge_bwd = RoadEdge(
+                    id=f"inj_e{inject_counter}_bwd",
+                    source_id=nearest_road_node,
+                    target_id=eid,
+                    length_km=dist_km,
+                    road_type=RoadType.RESIDENTIAL,
+                    base_speed_kmh=20.0,
+                    one_way=False,
+                )
+                network.add_edge(edge_bwd)
+
+                # Also add to NX graph so NX-backed routing reaches these nodes
+                travel_time = (dist_km / 20.0) * 3600.0
+                nx_edge_attrs = {
+                    "length_km": dist_km,
+                    "effective_speed_kmh": 20.0,
+                    "travel_time_seconds": travel_time,
+                }
+                nx_graph.add_node(eid, y=lat, x=lon)
+                nx_graph.add_edge(eid, nearest_road_node, **nx_edge_attrs)
+                nx_graph.add_edge(nearest_road_node, eid, **nx_edge_attrs)
+
         elapsed = time.time() - t_start
         self._stats = GraphProcessingStats(
             osm_node_count=G.number_of_nodes(),
@@ -277,11 +363,14 @@ class OSMGraphProcessor:
             zone_assignment_time_sec=t_zone,
         )
         logger.info(
-            "Converted OSM graph: %d nodes, %d edges (%.2fs)",
+            "Converted OSM graph: %d nodes, %d edges (%.2fs, injected %d entities)",
             self._stats.aureon_node_count,
             self._stats.aureon_edge_count,
             elapsed,
+            inject_counter // 2,
         )
+        # Wire NX graph for fast C-backed routing
+        network.set_nx_graph(nx_graph)
         return network
 
     def find_nearest_node(self, lat: float, lon: float) -> str | None:
