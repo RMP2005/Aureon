@@ -1,0 +1,150 @@
+{
+  "benchmark": {
+    "name": "Phase 6 XLARGE 3-Way",
+    "graph_nodes": 736057,
+    "graph_edges": 1591353,
+    "seeds": 20,
+    "duration_min": 120,
+    "incident_rate": 14.0,
+    "fleet_size": 50,
+    "hospitals": 28,
+    "graph_load_sec": 68.5
+  },
+  "results": {
+    "baseline": {
+      "seeds": 20,
+      "mean_rt": {
+        "mean": 18.229596322566294,
+        "ci": [
+          17.31864790102156,
+          19.14054474411103
+        ],
+        "std": 2.078512851602205
+      },
+      "critical_rt": {
+        "mean": 18.217501333015093,
+        "ci": [
+          17.28508389795414,
+          19.149918768076045
+        ]
+      },
+      "completed": {
+        "mean": 15.95,
+        "std": 3.940010686600522
+      },
+      "capability_match": {
+        "mean": 0.41330404572108104
+      },
+      "hospital_suitability": {
+        "mean": 0.6302032804794548
+      },
+      "fleet_distance_km": {
+        "mean": 548.167,
+        "ci": [
+          504.24123336156583,
+          592.0927666384342
+        ]
+      }
+    },
+    "old_aureon": {
+      "seeds": 20,
+      "mean_rt": {
+        "mean": 23.030898432948902,
+        "ci": [
+          21.97977193944084,
+          24.082024926456963
+        ],
+        "std": 2.3983574412602198
+      },
+      "critical_rt": {
+        "mean": 24.340196809392573,
+        "ci": [
+          23.33848857784486,
+          25.341905040940286
+        ]
+      },
+      "completed": {
+        "mean": 13.45,
+        "std": 3.3478194002726767
+      },
+      "capability_match": {
+        "mean": 0.9463407599703308
+      },
+      "hospital_suitability": {
+        "mean": 0.7667994186914223
+      },
+      "fleet_distance_km": {
+        "mean": 702.59945,
+        "ci": [
+          646.7039410958794,
+          758.4949589041207
+        ]
+      }
+    },
+    "hybrid": {
+      "seeds": 20,
+      "mean_rt": {
+        "mean": 18.337373913829772,
+        "ci": [
+          17.490621899706102,
+          19.184125927953442
+        ],
+        "std": 1.932035779250394
+      },
+      "critical_rt": {
+        "mean": 18.490185755252444,
+        "ci": [
+          17.567458133307444,
+          19.412913377197444
+        ]
+      },
+      "completed": {
+        "mean": 16,
+        "std": 3.8251246969698154
+      },
+      "capability_match": {
+        "mean": 0.5814680617913377
+      },
+      "hospital_suitability": {
+        "mean": 0.767227262580172
+      },
+      "fleet_distance_km": {
+        "mean": 591.6008,
+        "ci": [
+          542.5623757515252,
+          640.6392242484749
+        ]
+      }
+    }
+  },
+  "paired_analysis": {
+    "old_aureon": {
+      "rt_diff_mean": -4.801,
+      "rt_diff_ci95": [
+        -5.505993189744151,
+        -4.096611031021068
+      ],
+      "rt_cohens_d": -2.986,
+      "rt_t": -13.354,
+      "rt_p": 0.0,
+      "crit_diff_mean": -6.123,
+      "completed_diff_mean": -2.5,
+      "completed_t": -5.784,
+      "completed_p": 1.4e-05
+    },
+    "hybrid": {
+      "rt_diff_mean": -0.108,
+      "rt_diff_ci95": [
+        -0.470130288788156,
+        0.2545751062611994
+      ],
+      "rt_cohens_d": -0.13,
+      "rt_t": -0.583,
+      "rt_p": 0.566763,
+      "crit_diff_mean": -0.273,
+      "completed_diff_mean": 0.05,
+      "completed_t": 0.203,
+      "completed_p": 0.840942
+    }
+  }
+}
