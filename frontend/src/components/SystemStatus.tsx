@@ -1,23 +1,42 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-
-const systems = [
-  { name: 'Simulation Engine', status: 'standby', version: 'v0.1.0' },
-  { name: 'ML Pipeline', status: 'standby', version: 'v0.1.0' },
-  { name: 'Event Classifier', status: 'standby', version: 'v0.1.0' },
-  { name: 'Prediction Engine', status: 'standby', version: 'v0.1.0' },
-  { name: 'Optimizer', status: 'standby', version: 'v0.1.0' },
-  { name: 'Data Pipeline', status: 'standby', version: 'v0.1.0' },
-];
+import { getHealth, type HealthData } from '@/lib/api';
 
 const statusColors: Record<string, string> = {
   online: 'bg-emerald-400',
+  healthy: 'bg-emerald-400',
   standby: 'bg-amber-400',
   offline: 'bg-red-400',
+  error: 'bg-red-400',
 };
 
+const subsystems = [
+  { name: 'Simulation Engine', version: 'v0.1.0', checkHealth: true },
+  { name: 'ML Pipeline', version: 'v0.1.0', checkHealth: false },
+  { name: 'Event Classifier', version: 'v0.1.0', checkHealth: false },
+  { name: 'Prediction Engine', version: 'v0.1.0', checkHealth: false },
+  { name: 'Optimizer', version: 'v0.1.0', checkHealth: false },
+  { name: 'Data Pipeline', version: 'v0.1.0', checkHealth: false },
+];
+
 export default function SystemStatus() {
+  const [health, setHealth] = useState<HealthData | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    getHealth()
+      .then((res) => setHealth(res.data))
+      .catch(() => setError(true));
+  }, []);
+
+  const getStatus = (checkHealth: boolean): string => {
+    if (checkHealth && health) return health.status;
+    if (checkHealth && error) return 'offline';
+    return 'standby';
+  };
+
   return (
     <section className="relative px-6 py-24">
       <div className="max-w-4xl mx-auto">
@@ -45,25 +64,28 @@ export default function SystemStatus() {
             <span className="text-sm font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">Subsystem</span>
             <span className="text-sm font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">Status</span>
           </div>
-          {systems.map((system, index) => (
-            <motion.div
-              key={system.name}
-              initial={{ opacity: 0, x: -10 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.1 * index }}
-              className="px-6 py-4 flex items-center justify-between border-b border-white/5 last:border-b-0 hover:bg-white/[0.02] transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium">{system.name}</span>
-                <span className="text-xs text-[var(--color-text-muted)]">{system.version}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${statusColors[system.status]}`} />
-                <span className="text-xs text-[var(--color-text-secondary)] capitalize">{system.status}</span>
-              </div>
-            </motion.div>
-          ))}
+          {subsystems.map((system, index) => {
+            const status = getStatus(system.checkHealth);
+            return (
+              <motion.div
+                key={system.name}
+                initial={{ opacity: 0, x: -10 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: 0.1 * index }}
+                className="px-6 py-4 flex items-center justify-between border-b border-white/5 last:border-b-0 hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium">{system.name}</span>
+                  <span className="text-xs text-[var(--color-text-muted)]">{system.version}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${statusColors[status] ?? 'bg-amber-400'}`} />
+                  <span className="text-xs text-[var(--color-text-secondary)] capitalize">{status}</span>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </div>
     </section>

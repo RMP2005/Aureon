@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 const metrics = [
   { label: 'Active Simulations', value: '—', status: 'standby' },
@@ -60,12 +61,12 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
         >
-          <button className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300">
+          <Link href="/dashboard" className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 inline-block">
             Launch Dashboard
-          </button>
-          <button className="px-8 py-3 rounded-xl glass-panel text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all duration-300">
-            View Documentation
-          </button>
+          </Link>
+          <Link href="/simulation" className="px-8 py-3 rounded-xl glass-panel text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all duration-300 inline-block">
+            Run Simulation
+          </Link>
         </motion.div>
 
         {/* Status metrics */}

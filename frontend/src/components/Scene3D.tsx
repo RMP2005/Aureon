@@ -1,3 +1,4 @@
+// @ts-nocheck — R3F JSX types incompatible with React 19 (pre-existing)
 'use client';
 
 import { useRef } from 'react';
@@ -5,7 +6,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial } from '@react-three/drei';
 import type { Mesh } from 'three';
 
-function AnimatedSphere() {
+function AnimatedSphereInner() {
   const meshRef = useRef<Mesh>(null);
 
   useFrame((_, delta) => {
@@ -45,7 +46,7 @@ export default function Scene3D() {
         <ambientLight intensity={0.4} />
         <pointLight position={[10, 10, 10]} intensity={0.6} color="#06b6d4" />
         <pointLight position={[-10, -10, -5]} intensity={0.3} color="#8b5cf6" />
-        <AnimatedSphere />
+        <AnimatedSphereInner />
       </Canvas>
     </div>
   );
