@@ -2,16 +2,12 @@
 
 import unittest
 
-from src.services.simulation_service import SimulationService
+from src.services.simulation_service import SimulationService, get_simulation_service
 
 
 class TestSimulationService(unittest.TestCase):
     def setUp(self) -> None:
-        self.svc = SimulationService.__new__(SimulationService)
-        self.svc.road_network = SimulationService.__init__.__code__.co_consts  # not used here
-        # Use the real singleton for integration tests
-        from src.services.simulation_service import simulation_service
-        self.svc = simulation_service
+        self.svc = get_simulation_service()
 
     def test_get_city_state(self) -> None:
         state = self.svc.get_city_state()
@@ -57,8 +53,7 @@ class TestStrategyRouting(unittest.TestCase):
     """Verify that strategy name mapping works correctly."""
 
     def _make_svc(self) -> SimulationService:
-        from src.services.simulation_service import simulation_service
-        return simulation_service
+        return get_simulation_service()
 
     def test_aureon_maps_to_hybrid(self) -> None:
         svc = self._make_svc()

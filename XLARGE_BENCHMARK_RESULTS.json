@@ -1,0 +1,357 @@
+{
+  "benchmark": {
+    "name": "XLARGE Final Validation",
+    "graph_nodes": 736057,
+    "graph_edges": 1591353,
+    "seeds": 20,
+    "duration_min": 120,
+    "incident_rate": 14.0,
+    "fleet_size": 50,
+    "hospitals": 28,
+    "stations": 10,
+    "graph_load_sec": 39.6
+  },
+  "infrastructure": {
+    "node_count": 736057,
+    "edge_count": 1591353,
+    "scipy_matrix": true,
+    "nx_graph": true,
+    "peak_memory_mb": 6405.0
+  },
+  "results": {
+    "baseline": {
+      "seeds": 20,
+      "mean_rt": {
+        "mean": 18.229596322566294,
+        "ci": [
+          17.31864790102156,
+          19.14054474411103
+        ],
+        "std": 2.078512851602205
+      },
+      "median_rt": {
+        "mean": 16.52159272962661,
+        "ci": [
+          15.523117542522547,
+          17.520067916730678
+        ]
+      },
+      "p90_rt": {
+        "mean": 31.46693236456165,
+        "ci": [
+          29.316657903353345,
+          33.617206825769955
+        ]
+      },
+      "p95_rt": {
+        "mean": 38.30306140123596,
+        "ci": [
+          35.89385483318814,
+          40.71226796928377
+        ]
+      },
+      "critical_rt": {
+        "mean": 18.217501333015093,
+        "ci": [
+          17.28508389795414,
+          19.149918768076045
+        ]
+      },
+      "completed": {
+        "mean": 15.95,
+        "std": 3.940010686600522
+      },
+      "reported": {
+        "mean": 29.3,
+        "std": 5.037752213876845
+      },
+      "dispatched": {
+        "mean": 29.25
+      },
+      "unserviced": {
+        "mean": 0
+      },
+      "fleet_distance_km": {
+        "mean": 548.167,
+        "ci": [
+          504.24123336156583,
+          592.0927666384342
+        ]
+      },
+      "fleet_utilization": {
+        "mean": 0.21644305555555557,
+        "ci": [
+          0.19932731131847048,
+          0.23355879979264066
+        ]
+      },
+      "hospital_suitability": {
+        "mean": 0.6302032804794548
+      },
+      "capability_match": {
+        "mean": 0.41330404572108104
+      },
+      "wall_time": {
+        "mean": 30.0514679312706,
+        "total": 601.029358625412
+      }
+    },
+    "aureon": {
+      "seeds": 20,
+      "mean_rt": {
+        "mean": 23.030898432948902,
+        "ci": [
+          21.97977193944084,
+          24.082024926456963
+        ],
+        "std": 2.3983574412602198
+      },
+      "median_rt": {
+        "mean": 20.45983887913089,
+        "ci": [
+          19.215524392569797,
+          21.70415336569198
+        ]
+      },
+      "p90_rt": {
+        "mean": 43.55492958105074,
+        "ci": [
+          41.31995574423031,
+          45.78990341787117
+        ]
+      },
+      "p95_rt": {
+        "mean": 50.40523076125183,
+        "ci": [
+          47.98140820291447,
+          52.829053319589185
+        ]
+      },
+      "critical_rt": {
+        "mean": 24.340196809392573,
+        "ci": [
+          23.33848857784486,
+          25.341905040940286
+        ]
+      },
+      "completed": {
+        "mean": 13.45,
+        "std": 3.3478194002726767
+      },
+      "reported": {
+        "mean": 29.3,
+        "std": 5.037752213876845
+      },
+      "dispatched": {
+        "mean": 29.25
+      },
+      "unserviced": {
+        "mean": 0
+      },
+      "fleet_distance_km": {
+        "mean": 702.59945,
+        "ci": [
+          646.7039410958794,
+          758.4949589041207
+        ]
+      },
+      "fleet_utilization": {
+        "mean": 0.24125555555555556,
+        "ci": [
+          0.22223041385014425,
+          0.26028069726096686
+        ]
+      },
+      "hospital_suitability": {
+        "mean": 0.7667994186914223
+      },
+      "capability_match": {
+        "mean": 0.9463407599703308
+      },
+      "wall_time": {
+        "mean": 28.611140275001524,
+        "total": 572.2228055000305
+      }
+    }
+  },
+  "paired_analysis": {
+    "rt_difference_mean_min": -4.801,
+    "rt_difference_ci95": [
+      -5.505993189744151,
+      -4.096611031021068
+    ],
+    "rt_effect_size_cohens_d": -2.986,
+    "rt_t_statistic": -13.354,
+    "rt_p_value": 0.0,
+    "rt_significant_005": "True",
+    "crit_difference_mean_min": -6.123,
+    "crit_effect_size_cohens_d": -3.819,
+    "crit_t_statistic": -17.079,
+    "crit_p_value": 0.0,
+    "completed_difference_mean": -2.5,
+    "completed_t_statistic": -5.784,
+    "completed_p_value": 0.0
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "baseline_rt": 16.975655854349437,
+      "aureon_rt": 22.25628673968724,
+      "diff_pct": -31.107080225031897,
+      "baseline_completed": 17,
+      "aureon_completed": 11
+    },
+    {
+      "seed": 43,
+      "baseline_rt": 19.911343369704348,
+      "aureon_rt": 24.7004874280132,
+      "diff_pct": -24.052340263468444,
+      "baseline_completed": 16,
+      "aureon_completed": 14
+    },
+    {
+      "seed": 44,
+      "baseline_rt": 15.401953081610042,
+      "aureon_rt": 19.57750301067025,
+      "diff_pct": -27.11052232749508,
+      "baseline_completed": 19,
+      "aureon_completed": 17
+    },
+    {
+      "seed": 45,
+      "baseline_rt": 17.339059428758347,
+      "aureon_rt": 20.337643269067318,
+      "diff_pct": -17.293809117094074,
+      "baseline_completed": 20,
+      "aureon_completed": 16
+    },
+    {
+      "seed": 46,
+      "baseline_rt": 13.932347910934498,
+      "aureon_rt": 19.870001544486875,
+      "diff_pct": -42.61775309883225,
+      "baseline_completed": 22,
+      "aureon_completed": 19
+    },
+    {
+      "seed": 47,
+      "baseline_rt": 20.644511039494418,
+      "aureon_rt": 23.4296671837456,
+      "diff_pct": -13.491024994115774,
+      "baseline_completed": 22,
+      "aureon_completed": 17
+    },
+    {
+      "seed": 48,
+      "baseline_rt": 18.0818322776734,
+      "aureon_rt": 22.210123541856998,
+      "diff_pct": -22.83115560850003,
+      "baseline_completed": 21,
+      "aureon_completed": 18
+    },
+    {
+      "seed": 49,
+      "baseline_rt": 22.435593598673346,
+      "aureon_rt": 24.575712053470415,
+      "diff_pct": -9.538942864982264,
+      "baseline_completed": 13,
+      "aureon_completed": 12
+    },
+    {
+      "seed": 50,
+      "baseline_rt": 19.89295762669134,
+      "aureon_rt": 23.868903400378105,
+      "diff_pct": -19.986700058879357,
+      "baseline_completed": 11,
+      "aureon_completed": 9
+    },
+    {
+      "seed": 51,
+      "baseline_rt": 17.068880218693867,
+      "aureon_rt": 21.743880218693864,
+      "diff_pct": -27.38902575975622,
+      "baseline_completed": 18,
+      "aureon_completed": 14
+    },
+    {
+      "seed": 52,
+      "baseline_rt": 16.317026980538213,
+      "aureon_rt": 21.732135491281646,
+      "diff_pct": -33.18685761322936,
+      "baseline_completed": 18,
+      "aureon_completed": 13
+    },
+    {
+      "seed": 53,
+      "baseline_rt": 20.529681321969687,
+      "aureon_rt": 27.63807518710885,
+      "diff_pct": -34.624959606811665,
+      "baseline_completed": 14,
+      "aureon_completed": 10
+    },
+    {
+      "seed": 54,
+      "baseline_rt": 15.98793805900823,
+      "aureon_rt": 20.67035153743571,
+      "diff_pct": -29.287162992160997,
+      "baseline_completed": 8,
+      "aureon_completed": 7
+    },
+    {
+      "seed": 55,
+      "baseline_rt": 19.805567475551516,
+      "aureon_rt": 26.005434064452086,
+      "diff_pct": -31.303655381517537,
+      "baseline_completed": 16,
+      "aureon_completed": 13
+    },
+    {
+      "seed": 56,
+      "baseline_rt": 17.544257096076937,
+      "aureon_rt": 21.852200354183278,
+      "diff_pct": -24.554720296875033,
+      "baseline_completed": 18,
+      "aureon_completed": 18
+    },
+    {
+      "seed": 57,
+      "baseline_rt": 17.491855937156764,
+      "aureon_rt": 23.68910825078512,
+      "diff_pct": -35.42935830190525,
+      "baseline_completed": 14,
+      "aureon_completed": 11
+    },
+    {
+      "seed": 58,
+      "baseline_rt": 18.057811190656462,
+      "aureon_rt": 24.489621678542445,
+      "diff_pct": -35.617885357080006,
+      "baseline_completed": 11,
+      "aureon_completed": 9
+    },
+    {
+      "seed": 59,
+      "baseline_rt": 17.636909295742353,
+      "aureon_rt": 22.31612076825832,
+      "diff_pct": -26.530790594050135,
+      "baseline_completed": 14,
+      "aureon_completed": 14
+    },
+    {
+      "seed": 60,
+      "baseline_rt": 19.465909684151896,
+      "aureon_rt": 21.443181391190368,
+      "diff_pct": -10.157612662963608,
+      "baseline_completed": 11,
+      "aureon_completed": 13
+    },
+    {
+      "seed": 61,
+      "baseline_rt": 20.070835003890767,
+      "aureon_rt": 28.211531545670365,
+      "diff_pct": -40.55982992337642,
+      "baseline_completed": 16,
+      "aureon_completed": 14
+    }
+  ]
+}

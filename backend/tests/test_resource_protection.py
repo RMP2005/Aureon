@@ -1,13 +1,11 @@
-"""Tests for API resource abuse protection (Phase 8C)."""
-
-from collections import OrderedDict
+"""Tests for API resource abuse protection (Phase 8C) and run persistence."""
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 import src.core.rate_limit as _rl_mod
 from src.main import app
-from src.services.simulation_service import SimulationService
+from src.services.run_store import RunStore
 
 
 # --- Rate limiting tests ---
@@ -50,62 +48,53 @@ async def test_rate_limit_does_not_affect_health_endpoint() -> None:
         assert all(code == 200 for code in responses)
 
 
-# --- In-memory run storage eviction tests ---
+# --- Run persistence tests ---
 
 
-def test_eviction_removes_oldest_when_at_capacity() -> None:
-    """When max_stored_runs is exceeded, the oldest entry is evicted."""
-    svc = SimulationService.__new__(SimulationService)
-    svc._max_stored_runs = 3
-    svc._runs = OrderedDict()
-
-    # Insert 3 entries
-    svc._store_run("run_1", {"data": "a"})
-    svc._store_run("run_2", {"data": "b"})
-    svc._store_run("run_3", {"data": "c"})
-    assert len(svc._runs) == 3
-    assert "run_1" in svc._runs
-
-    # Insert a 4th — run_1 should be evicted
-    svc._store_run("run_4", {"data": "d"})
-    assert len(svc._runs) == 3
-    assert "run_1" not in svc._runs
-    assert "run_2" in svc._runs
-    assert "run_3" in svc._runs
-    assert "run_4" in svc._runs
+def test_run_store_save_and_retrieve() -> None:
+    """RunStore saves and retrieves a run."""
+    store = RunStore()
+    store.save_run("persist_1", {"data": "hello", "strategy": "aureon"}, run_type="single_run")
+    result = store.get_run("persist_1")
+    assert result is not None
+    assert result["data"] == "hello"
+    assert result["strategy"] == "aureon"
 
 
-def test_eviction_preserves_retrieval() -> None:
-    """get_run_results returns None for evicted runs, data for retained runs."""
-    svc = SimulationService.__new__(SimulationService)
-    svc._max_stored_runs = 2
-    svc._runs = OrderedDict()
-
-    svc._store_run("old_run", {"data": "old"})
-    svc._store_run("new_run", {"data": "new"})
-    assert svc.get_run_results("old_run") == {"data": "old"}
-
-    # Trigger eviction of old_run
-    svc._store_run("newest_run", {"data": "newest"})
-    assert svc.get_run_results("old_run") is None
-    assert svc.get_run_results("new_run") == {"data": "new"}
-    assert svc.get_run_results("newest_run") == {"data": "newest"}
+def test_run_store_persists_failed_run() -> None:
+    """Failed runs are stored with error info."""
+    store = RunStore()
+    store.save_run("fail_1", None, status="failed", error_message="boom")
+    result = store.get_run("fail_1")
+    assert result is not None
 
 
-def test_list_runs_reflects_eviction() -> None:
-    """list_runs only returns entries that haven't been evicted."""
-    svc = SimulationService.__new__(SimulationService)
-    svc._max_stored_runs = 2
-    svc._runs = OrderedDict()
+def test_run_store_list_runs() -> None:
+    """list_runs returns all stored runs."""
+    store = RunStore()
+    store.save_run("list_a", {"executed_at": "t1"})
+    store.save_run("list_b", {"executed_at": "t2"})
+    runs = store.list_runs()
+    run_ids = [r["run_id"] for r in runs]
+    assert "list_a" in run_ids
+    assert "list_b" in run_ids
 
-    svc._store_run("a", {"executed_at": "t1"})
-    svc._store_run("b", {"executed_at": "t2"})
-    svc._store_run("c", {"executed_at": "t3"})
 
-    run_ids = [r["run_id"] for r in svc.list_runs()]
-    assert "a" not in run_ids
-    assert "b" in run_ids
-    assert "c" in run_ids
+def test_run_store_count() -> None:
+    """count_runs returns the number of stored runs."""
+    store = RunStore()
+    initial = store.count_runs()
+    store.save_run("cnt_1", {"v": 1})
+    assert store.count_runs() == initial + 1
+
+
+def test_run_store_delete() -> None:
+    """delete_run removes the run."""
+    store = RunStore()
+    store.save_run("del_1", {"v": 1})
+    assert store.get_run("del_1") is not None
+    store.delete_run("del_1")
+    assert store.get_run("del_1") is None
 
 
 # --- CORS / Security header tests ---

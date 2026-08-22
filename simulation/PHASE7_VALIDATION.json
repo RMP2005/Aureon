@@ -1,0 +1,388 @@
+{
+  "A": {
+    "config": "normal_random",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 4.56,
+        "p90_response_time_min": 9.29,
+        "critical_mean_rt_min": 4.35,
+        "capability_match_pct": 71.4,
+        "hospital_suitability": 0.764,
+        "completed_incidents": 1.0,
+        "dispatched_incidents": 8.0,
+        "reported_incidents": 8.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 4.56,
+        "p90_response_time_min": 9.29,
+        "critical_mean_rt_min": 4.35,
+        "capability_match_pct": 71.4,
+        "hospital_suitability": 0.764,
+        "completed_incidents": 1.0,
+        "dispatched_incidents": 8.0,
+        "reported_incidents": 8.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 4.56,
+        "p90_response_time_min": 9.29,
+        "critical_mean_rt_min": 4.35,
+        "capability_match_pct": 71.4,
+        "hospital_suitability": 0.764,
+        "completed_incidents": 1.0,
+        "dispatched_incidents": 8.0,
+        "reported_incidents": 8.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {
+          "normal": 8
+        }
+      }
+    }
+  },
+  "B": {
+    "config": "fleet_scarcity",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 9.33,
+        "p90_response_time_min": 17.17,
+        "critical_mean_rt_min": 5.42,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.633,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 8.0,
+        "unserviced": 4.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 9.33,
+        "p90_response_time_min": 17.17,
+        "critical_mean_rt_min": 5.42,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.633,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 8.0,
+        "unserviced": 4.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 9.33,
+        "p90_response_time_min": 17.17,
+        "critical_mean_rt_min": 5.42,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.633,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 8.0,
+        "unserviced": 4.0,
+        "n_seeds": 1,
+        "batch_dispatches": 4,
+        "mode_counts": {}
+      }
+    }
+  },
+  "C": {
+    "config": "critical_cluster",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 13.33,
+        "critical_mean_rt_min": 1.25,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.767,
+        "completed_incidents": 4.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 13.33,
+        "critical_mean_rt_min": 1.25,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.767,
+        "completed_incidents": 4.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 13.33,
+        "critical_mean_rt_min": 1.25,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.767,
+        "completed_incidents": 4.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 4,
+        "mode_counts": {
+          "normal": 2
+        }
+      }
+    }
+  },
+  "D": {
+    "config": "simultaneous_incidents",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 10.61,
+        "p90_response_time_min": 21.0,
+        "critical_mean_rt_min": 10.61,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 3.0,
+        "reported_incidents": 4.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 10.61,
+        "p90_response_time_min": 21.0,
+        "critical_mean_rt_min": 10.61,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 3.0,
+        "reported_incidents": 4.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 10.61,
+        "p90_response_time_min": 21.0,
+        "critical_mean_rt_min": 10.61,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 3.0,
+        "reported_incidents": 4.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 3,
+        "mode_counts": {}
+      }
+    }
+  },
+  "E": {
+    "config": "spatial_hotspot",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 19.53,
+        "p90_response_time_min": 21.0,
+        "critical_mean_rt_min": 0.0,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.5,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 5.0,
+        "reported_incidents": 6.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 19.53,
+        "p90_response_time_min": 21.0,
+        "critical_mean_rt_min": 0.0,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.5,
+        "completed_incidents": 0.0,
+        "dispatched_incidents": 5.0,
+        "reported_incidents": 6.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 18.6,
+        "p90_response_time_min": 24.0,
+        "critical_mean_rt_min": 0.0,
+        "capability_match_pct": 100.0,
+        "hospital_suitability": 0.5,
+        "completed_incidents": 1.0,
+        "dispatched_incidents": 5.0,
+        "reported_incidents": 6.0,
+        "unserviced": 1.0,
+        "n_seeds": 1,
+        "batch_dispatches": 4,
+        "mode_counts": {
+          "fleet_scarcity": 1
+        }
+      }
+    }
+  },
+  "F": {
+    "config": "hospital_congestion",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 7.92,
+        "p90_response_time_min": 13.33,
+        "critical_mean_rt_min": 7.92,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.65,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 8.25,
+        "p90_response_time_min": 13.33,
+        "critical_mean_rt_min": 8.25,
+        "capability_match_pct": 83.3,
+        "hospital_suitability": 0.717,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 8.25,
+        "p90_response_time_min": 15.33,
+        "critical_mean_rt_min": 8.25,
+        "capability_match_pct": 83.3,
+        "hospital_suitability": 0.75,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 6,
+        "mode_counts": {}
+      }
+    }
+  },
+  "G": {
+    "config": "road_disruption",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 5.67,
+        "critical_mean_rt_min": 3.42,
+        "capability_match_pct": 75.0,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 4.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 5.67,
+        "critical_mean_rt_min": 3.42,
+        "capability_match_pct": 75.0,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 4.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 3.42,
+        "p90_response_time_min": 5.67,
+        "critical_mean_rt_min": 3.42,
+        "capability_match_pct": 75.0,
+        "hospital_suitability": 0.9,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 4.0,
+        "reported_incidents": 4.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {
+          "normal": 4
+        }
+      }
+    }
+  },
+  "H": {
+    "config": "combined_disaster",
+    "summary": {
+      "Baseline": {
+        "mean_response_time_min": 11.36,
+        "p90_response_time_min": 27.33,
+        "critical_mean_rt_min": 11.36,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.733,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Hybrid Aureon": {
+        "mean_response_time_min": 11.36,
+        "p90_response_time_min": 27.33,
+        "critical_mean_rt_min": 11.36,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.75,
+        "completed_incidents": 2.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 0,
+        "mode_counts": {}
+      },
+      "Adaptive Aureon": {
+        "mean_response_time_min": 11.39,
+        "p90_response_time_min": 27.33,
+        "critical_mean_rt_min": 11.39,
+        "capability_match_pct": 66.7,
+        "hospital_suitability": 0.767,
+        "completed_incidents": 1.0,
+        "dispatched_incidents": 6.0,
+        "reported_incidents": 6.0,
+        "unserviced": 0.0,
+        "n_seeds": 1,
+        "batch_dispatches": 5,
+        "mode_counts": {
+          "hospital_congestion": 1
+        }
+      }
+    }
+  }
+}

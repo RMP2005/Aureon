@@ -1,0 +1,14 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+python-dotenv
+python-multipart
+websockets
+
+[dev]
+pytest
+pytest-asyncio
+httpx
+ruff
+mypy

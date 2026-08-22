@@ -10,7 +10,7 @@ from src.models.schemas import (
     SimulationCompareRequest,
     SimulationRunRequest,
 )
-from src.services.simulation_service import simulation_service
+from src.services.simulation_service import get_simulation_service
 
 logger = logging.getLogger("aureon.api.simulation")
 
@@ -22,7 +22,7 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
     """Execute a scenario simulation with specified strategy and duration."""
     try:
         result = await asyncio.to_thread(
-            simulation_service.run_simulation,
+            get_simulation_service().run_simulation,
             strategy_name=request.strategy,
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
@@ -42,7 +42,7 @@ async def compare_strategies(request: SimulationCompareRequest) -> ResponseEnvel
     """Run side-by-side benchmark comparing Baseline vs Aureon intelligence."""
     try:
         report = await asyncio.to_thread(
-            simulation_service.run_comparison,
+            get_simulation_service().run_comparison,
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
             seed=request.seed,
@@ -59,21 +59,21 @@ async def compare_strategies(request: SimulationCompareRequest) -> ResponseEnvel
 @router.get("/state", response_model=ResponseEnvelope)
 async def get_simulation_state() -> ResponseEnvelope:
     """Retrieve current digital twin city state (hospitals, ambulances, incidents)."""
-    state = simulation_service.get_city_state()
+    state = get_simulation_service().get_city_state()
     return ResponseEnvelope(data=state)
 
 
 @router.get("/results", response_model=ResponseEnvelope)
 async def list_simulation_results() -> ResponseEnvelope:
     """List all completed simulation and comparison runs."""
-    runs = simulation_service.list_runs()
+    runs = get_simulation_service().list_runs()
     return ResponseEnvelope(data=runs)
 
 
 @router.get("/results/{run_id}", response_model=ResponseEnvelope)
 async def get_simulation_result(run_id: str) -> ResponseEnvelope:
     """Get metrics and details of a specific simulation or comparison run."""
-    result = simulation_service.get_run_results(run_id)
+    result = get_simulation_service().get_run_results(run_id)
     if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

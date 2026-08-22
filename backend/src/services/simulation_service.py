@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 import sys
 import uuid
-from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from src.core.config import settings
+from src.services.run_store import RunStore
 
 # Ensure workspace root and simulation are in sys.path
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
@@ -49,7 +49,7 @@ logger = logging.getLogger("aureon.services.simulation")
 class SimulationService:
     """Manages digital twin simulation runs, state snapshots, and strategy comparisons."""
 
-    def __init__(self, max_stored_runs: int = 100) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         self.road_network = build_bangalore_network()
         self.hospitals = get_default_bangalore_hospitals()
         self.ambulances = create_default_bangalore_fleet()
@@ -62,17 +62,9 @@ class SimulationService:
             strategy=HybridAureonStrategy(),
         )
 
-        # Store historical simulation run results (LRU eviction)
-        self._max_stored_runs = max_stored_runs
-        self._runs: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        # Persistent run storage
+        self._store = RunStore(db_path=db_path)
         logger.info("SimulationService initialized with Bangalore Digital Twin topology")
-
-    def _store_run(self, run_id: str, data: dict[str, Any]) -> None:
-        """Store a run result, evicting the oldest if at capacity."""
-        self._runs[run_id] = data
-        self._runs.move_to_end(run_id)
-        while len(self._runs) > self._max_stored_runs:
-            self._runs.popitem(last=False)
 
     def get_city_state(self) -> dict[str, Any]:
         """Retrieve real-time state of the city digital twin."""
@@ -132,7 +124,7 @@ class SimulationService:
             "executed_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        self._store_run(run_id, result_data)
+        self._store.save_run(run_id, result_data)
         return result_data
 
     def run_comparison(
@@ -151,24 +143,24 @@ class SimulationService:
         run_id = f"cmp_{uuid.uuid4().hex[:8]}"
         report["comparison_id"] = run_id
         report["executed_at"] = datetime.now(timezone.utc).isoformat()
-        self._store_run(run_id, report)
+        self._store.save_run(run_id, report, run_type="comparison")
         return report
 
     def get_run_results(self, run_id: str) -> dict[str, Any] | None:
         """Get metrics and logs of a past simulation run."""
-        return self._runs.get(run_id)
+        return self._store.get_run(run_id)
 
     def list_runs(self) -> list[dict[str, Any]]:
         """List summary of all completed simulation runs."""
-        return [
-            {
-                "run_id": rid,
-                "type": "comparison" if "comparison_id" in data else "single_run",
-                "executed_at": data.get("executed_at"),
-            }
-            for rid, data in self._runs.items()
-        ]
+        return self._store.list_runs()
 
 
-# Singleton instance for the backend
-simulation_service = SimulationService(max_stored_runs=settings.MAX_STORED_RUNS)
+# Lazy singleton — created on first access so DB is initialized before construction
+_simulation_service: SimulationService | None = None
+
+
+def get_simulation_service() -> SimulationService:
+    global _simulation_service
+    if _simulation_service is None:
+        _simulation_service = SimulationService()
+    return _simulation_service
