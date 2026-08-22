@@ -533,5 +533,209 @@ class TestHospitalCongestionRouting(unittest.TestCase):
             h.occupied_icu_beds = 0
 
 
+class TestCoverageAwareDispatch(unittest.TestCase):
+    """Coverage-aware dispatch chooses a slightly farther ambulance when
+    dispatching the nearest would leave an isolated zone uncovered.
+
+    Topology (one-way edges, both directions added):
+        stn_A --600s--> INC --700s--> stn_B --400s--> stn_C
+
+    - amb_A at stn_A (nearest to incident, 600s ETA)
+    - amb_B at stn_B (second, 700s ETA — within 1.3x threshold)
+    - amb_C at stn_C (available, in all_ambulances)
+
+    Dispatching amb_A: remaining=[amb_B, amb_C]
+      StationA nearest ETA = min(1300s from B, 1700s from C) = 1300s > 1200s → GAP
+    Dispatching amb_B: remaining=[amb_A, amb_C]
+      StationB nearest ETA = min(1300s from A, 400s from C) = 400s → OK
+    """
+
+    @staticmethod
+    def _build_coverage_net():
+        net = RoadNetwork("Coverage Test")
+        for nid in ("stn_A", "INC", "stn_B", "stn_C"):
+            net.add_node(RoadNode(id=nid, name=nid, latitude=12.97, longitude=77.60))
+        # edge lengths for target travel times at 50 km/h
+        edges = [
+            ("e_A_inc", "stn_A", "INC", 8.333),   # 600s
+            ("e_inc_B", "INC", "stn_B", 9.722),    # 700s
+            ("e_B_C", "stn_B", "stn_C", 5.556),    # 400s
+        ]
+        for eid, src, dst, km in edges:
+            net.add_edge(RoadEdge(id=eid, source_id=src, target_id=dst,
+                                  length_km=km, road_type=RoadType.PRIMARY_ARTERIAL,
+                                  base_speed_kmh=50.0, one_way=True))
+            net.add_edge(RoadEdge(id=f"{eid}_rev", source_id=dst, target_id=src,
+                                  length_km=km, road_type=RoadType.PRIMARY_ARTERIAL,
+                                  base_speed_kmh=50.0, one_way=True))
+        return net
+
+    @staticmethod
+    def _make_amb(cap=AmbulanceCapability.BLS):
+        def _make(cid, pos):
+            return Ambulance(
+                id=cid, callsign=cid.upper(), capability=cap,
+                base_station_id=pos, current_node_id=pos,
+                latitude=12.97, longitude=77.60,
+            )
+        return _make
+
+    def _incident(self):
+        profile = INCIDENT_PROFILES[IncidentCategory.MINOR_INJURY]
+        return Incident(
+            id="inc_cov", category=IncidentCategory.MINOR_INJURY,
+            severity=IncidentSeverity.MODERATE,
+            required_capability=profile.required_capability,
+            location_node_id="INC", location_name="Incident Node",
+            latitude=12.97, longitude=77.60,
+            reported_at_tick=1, reported_at_sim_time_sec=10.0,
+            target_response_time_sec=profile.target_response_time_sec,
+            base_on_scene_time_sec=profile.base_on_scene_time_sec,
+        )
+
+    def test_coverage_aware_picks_farther_ambulance(self):
+        net = self._build_coverage_net()
+        mk = self._make_amb()
+        amb_a = mk("amb_A", "stn_A")
+        amb_b = mk("amb_B", "stn_B")
+        amb_c = mk("amb_C", "stn_C")
+        available = [amb_a, amb_b, amb_c]
+        hospitals = get_default_bangalore_hospitals()
+
+        strategy = AdaptiveAureonStrategy()
+        decision = strategy._dispatch_coverage_aware(
+            self._incident(), available, hospitals, net, all_amb=available,
+        )
+        self.assertEqual(decision.ambulance_id, "amb_B",
+                         f"Expected amb_B to avoid gap, got {decision.ambulance_id}: "
+                         f"{decision.rationale}")
+
+    def test_hybrid_picks_nearest(self):
+        net = self._build_coverage_net()
+        mk = self._make_amb()
+        amb_a = mk("amb_A", "stn_A")
+        amb_b = mk("amb_B", "stn_B")
+        amb_c = mk("amb_C", "stn_C")
+        available = [amb_a, amb_b, amb_c]
+        hospitals = get_default_bangalore_hospitals()
+
+        strategy = AdaptiveAureonStrategy()
+        decision = strategy._dispatch_hybrid(
+            self._incident(), available, hospitals, net, all_amb=available,
+        )
+        self.assertEqual(decision.ambulance_id, "amb_A",
+                         f"Hybrid expected nearest amb_A, got {decision.ambulance_id}")
+
+    def test_no_gap_uses_nearest(self):
+        net = self._build_coverage_net()
+        mk = self._make_amb()
+        amb_a = mk("amb_A", "stn_A")
+        amb_b = mk("amb_B", "stn_B")
+        amb_c = mk("amb_C", "stn_C")
+        amb_d = mk("amb_D", "stn_A")
+        available = [amb_a, amb_b, amb_c, amb_d]
+        hospitals = get_default_bangalore_hospitals()
+
+        strategy = AdaptiveAureonStrategy()
+        decision = strategy._dispatch_coverage_aware(
+            self._incident(), available, hospitals, net, all_amb=available,
+        )
+        self.assertEqual(decision.ambulance_id, "amb_A",
+                         "When no gap exists, coverage-aware should pick nearest")
+
+    def test_single_candidate_fallback(self):
+        net = self._build_coverage_net()
+        mk = self._make_amb()
+        amb_a = mk("amb_A", "stn_A")
+        hospitals = get_default_bangalore_hospitals()
+
+        strategy = AdaptiveAureonStrategy()
+        decision = strategy._dispatch_coverage_aware(
+            self._incident(), [amb_a], hospitals, net, all_amb=[amb_a],
+        )
+        self.assertEqual(decision.ambulance_id, "amb_A")
+
+    def test_capability_compatibility(self):
+        net = self._build_coverage_net()
+        mk = self._make_amb
+        amb_a = mk(AmbulanceCapability.BLS)("amb_A", "stn_A")
+        amb_b = mk(AmbulanceCapability.BLS)("amb_B", "stn_B")
+        amb_c = mk(AmbulanceCapability.BLS)("amb_C", "stn_C")
+        hospitals = get_default_bangalore_hospitals()
+        profile = INCIDENT_PROFILES[IncidentCategory.MINOR_INJURY]
+        self.assertTrue(amb_a.can_handle(profile.required_capability))
+
+        strategy = AdaptiveAureonStrategy()
+        decision = strategy._dispatch_coverage_aware(
+            self._incident(), [amb_a, amb_b, amb_c], hospitals, net,
+            all_amb=[amb_a, amb_b, amb_c],
+        )
+        self.assertTrue(decision.metadata.get("capability_matched"))
+
+
+class TestScenarioDetectorCoveragePressure(unittest.TestCase):
+    def test_high_coverage_deficit_computed(self):
+        net = RoadNetwork("Test")
+        for nid in ("A", "B", "C"):
+            net.add_node(RoadNode(id=nid, name=nid, latitude=12.97, longitude=77.60))
+        for eid, s, d in [("e1", "A", "B"), ("e2", "B", "C")]:
+            net.add_edge(RoadEdge(id=eid, source_id=s, target_id=d,
+                                  length_km=20.0, road_type=RoadType.PRIMARY_ARTERIAL,
+                                  base_speed_kmh=50.0, one_way=True))
+            net.add_edge(RoadEdge(id=f"{eid}_r", source_id=d, target_id=s,
+                                  length_km=20.0, road_type=RoadType.PRIMARY_ARTERIAL,
+                                  base_speed_kmh=50.0, one_way=True))
+        amb_a = Ambulance(id="a1", callsign="A1", capability=AmbulanceCapability.BLS,
+                          base_station_id="A", current_node_id="A",
+                          latitude=12.97, longitude=77.60)
+        amb_b = Ambulance(id="a2", callsign="A2", capability=AmbulanceCapability.BLS,
+                          base_station_id="B", current_node_id="B",
+                          latitude=12.97, longitude=77.60)
+        amb_c = Ambulance(id="a3", callsign="A3", capability=AmbulanceCapability.BLS,
+                          base_station_id="C", current_node_id="C",
+                          latitude=12.97, longitude=77.60)
+        detector = ScenarioDetector(
+            network=net, all_ambulances=[amb_a, amb_b, amb_c],
+        )
+        state = detector.detect(
+            available_ambulances=[amb_a],
+            pending_incidents=[],
+            hospitals=[],
+        )
+        self.assertGreater(state.coverage_deficit, 0.0,
+                           "With 1 of 3 ambulances available and far-apart stations, "
+                           "coverage_deficit should be positive")
+        mode = state.recommended_mode()
+        self.assertIn(mode, (DispatchMode.NORMAL, DispatchMode.HIGH_DEMAND,
+                             DispatchMode.FLEET_SCARCITY))
+
+    def test_full_fleet_zero_deficit(self):
+        net = RoadNetwork("Test")
+        for nid in ("A", "B"):
+            net.add_node(RoadNode(id=nid, name=nid, latitude=12.97, longitude=77.60))
+        net.add_edge(RoadEdge(id="e1", source_id="A", target_id="B",
+                              length_km=1.0, road_type=RoadType.PRIMARY_ARTERIAL,
+                              base_speed_kmh=50.0, one_way=True))
+        net.add_edge(RoadEdge(id="e1_r", source_id="B", target_id="A",
+                              length_km=1.0, road_type=RoadType.PRIMARY_ARTERIAL,
+                              base_speed_kmh=50.0, one_way=True))
+        amb_a = Ambulance(id="a1", callsign="A1", capability=AmbulanceCapability.BLS,
+                          base_station_id="A", current_node_id="A",
+                          latitude=12.97, longitude=77.60)
+        amb_b = Ambulance(id="a2", callsign="A2", capability=AmbulanceCapability.BLS,
+                          base_station_id="B", current_node_id="B",
+                          latitude=12.97, longitude=77.60)
+        detector = ScenarioDetector(
+            network=net, all_ambulances=[amb_a, amb_b],
+        )
+        state = detector.detect(
+            available_ambulances=[amb_a, amb_b],
+            pending_incidents=[],
+            hospitals=[],
+        )
+        self.assertEqual(state.coverage_deficit, 0.0,
+                         "Full fleet available → no coverage deficit")
+
+
 if __name__ == "__main__":
     unittest.main()

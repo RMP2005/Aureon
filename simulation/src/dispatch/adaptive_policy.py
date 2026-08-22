@@ -469,7 +469,11 @@ class AdaptiveAureonStrategy(BaseDispatchStrategy):
             ),
             estimated_scene_eta_sec=chosen_eta,
             estimated_hospital_eta_sec=hosp_eta,
-            metadata={"mode": "coverage_aware", "decision_reason": reason},
+            metadata={
+                "mode": "coverage_aware",
+                "decision_reason": reason,
+                "capability_matched": matched,
+            },
         )
 
     def _dispatch_scarcity(
