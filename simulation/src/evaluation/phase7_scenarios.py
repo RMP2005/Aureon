@@ -152,10 +152,10 @@ def _build_d(net, config, **kw):
 
 def _build_e(net, config, **kw):
     hotspot = [
-        ("node_silk_board", IncidentCategory.CARDIAC_ARREST),
-        ("node_hsr_layout", IncidentCategory.TRAFFIC_COLLISION),
-        ("node_koramangala_sony", IncidentCategory.MAJOR_TRAUMA),
-        ("node_electronic_city", IncidentCategory.RESPIRATORY_DISTRESS),
+        ("node_silk_board", IncidentCategory.MINOR_INJURY),
+        ("node_hsr_layout", IncidentCategory.GENERAL_MEDICAL),
+        ("node_koramangala_sony", IncidentCategory.MINOR_INJURY),
+        ("node_btm_layout", IncidentCategory.GENERAL_MEDICAL),
     ]
     dispersed = [
         ("node_hebbal_flyover", IncidentCategory.GENERAL_MEDICAL),
@@ -165,7 +165,7 @@ def _build_e(net, config, **kw):
     for i, (nid, cat) in enumerate(hotspot):
         out.append(_mk(f"inc_e{i+1:02d}", net, nid, 60.0, cat))
     for i, (nid, cat) in enumerate(dispersed):
-        out.append(_mk(f"inc_e{i+5:02d}", net, nid, 120.0, cat))
+        out.append(_mk(f"inc_e{i+5:02d}", net, nid, 180.0, cat))
     return [(i.reported_at_sim_time_sec, i) for i in out]
 
 
@@ -259,8 +259,8 @@ SCENARIO_D_CONFIGS = {
 SCENARIO_E_CONFIGS = {
     "spatial_hotspot": ScenarioConfig(
         name="spatial_hotspot",
-        description="4 incidents in South-East corridor, 2 dispersed. Tests spatial awareness.",
-        fleet_size=14, duration_minutes=30.0, incident_rate_per_hour=15.0,
+        description="4 incidents clustered in South-East corridor at t=60s, 2 dispersed at t=180s. Fleet=5.",
+        fleet_size=5, duration_minutes=30.0, incident_rate_per_hour=15.0,
         schedule_builder=_build_e,
     ),
 }

@@ -28,7 +28,7 @@ try:
     from simulation.src.network.bangalore_map import build_bangalore_network
     from simulation.src.network.road_graph import RoadNetwork, RoadNode, RoadEdge, RoadType
     from simulation.src.evaluation.phase7_scenarios import (
-        ScenarioConfig, SCENARIO_D_CONFIGS,
+        ScenarioConfig, SCENARIO_D_CONFIGS, SCENARIO_E_CONFIGS,
         run_scenario_single, run_scenario_comparison, summarize_results,
         create_fleet_scarcity_scenario, create_critical_cluster_scenario,
         create_hospital_congestion_scenario, create_road_disruption_scenario,
@@ -50,7 +50,7 @@ except ImportError:
     from src.network.bangalore_map import build_bangalore_network
     from src.network.road_graph import RoadNetwork, RoadNode, RoadEdge, RoadType
     from src.evaluation.phase7_scenarios import (
-        ScenarioConfig, SCENARIO_D_CONFIGS,
+        ScenarioConfig, SCENARIO_D_CONFIGS, SCENARIO_E_CONFIGS,
         run_scenario_single, run_scenario_comparison, summarize_results,
         create_fleet_scarcity_scenario, create_critical_cluster_scenario,
         create_hospital_congestion_scenario, create_road_disruption_scenario,
@@ -891,6 +891,127 @@ class TestSimultaneousDispatch(unittest.TestCase):
         self.assertEqual(len(schedule), 4)
         times = {t for t, _ in schedule}
         self.assertEqual(len(times), 1, "All incidents must share one timestamp")
+
+
+class TestSpatialHotspot(unittest.TestCase):
+    """Prove the hotspot is real and detectable, and the adaptive system responds."""
+
+    HOTSPOT_NODES = [
+        "node_silk_board", "node_hsr_layout",
+        "node_koramangala_sony", "node_btm_layout",
+    ]
+    HOTSPOT_T = 60.0
+
+    def _make_hotspot_incidents(self, net):
+        cats = [
+            IncidentCategory.MINOR_INJURY,
+            IncidentCategory.GENERAL_MEDICAL,
+            IncidentCategory.MINOR_INJURY,
+            IncidentCategory.GENERAL_MEDICAL,
+        ]
+        incs = []
+        for nid, cat in zip(self.HOTSPOT_NODES, cats):
+            p = INCIDENT_PROFILES[cat]
+            n = net.nodes[nid]
+            incs.append(Incident(
+                id=f"hot_{nid}", category=cat, severity=p.severity,
+                required_capability=p.required_capability,
+                location_node_id=nid, location_name=nid,
+                latitude=n.latitude, longitude=n.longitude,
+                reported_at_tick=1, reported_at_sim_time_sec=self.HOTSPOT_T,
+                target_response_time_sec=p.target_response_time_sec,
+                base_on_scene_time_sec=p.base_on_scene_time_sec,
+            ))
+        return incs
+
+    def test_hotspot_incidents_same_timestamp(self):
+        net = build_bangalore_network()
+        incs = self._make_hotspot_incidents(net)
+        times = {i.reported_at_sim_time_sec for i in incs}
+        self.assertEqual(len(times), 1, f"All hotspot incidents must share timestamp, got {times}")
+
+    def test_spatial_cluster_score_above_threshold(self):
+        import math
+        net = build_bangalore_network()
+        incs = self._make_hotspot_incidents(net)
+        coords = [(i.latitude, i.longitude) for i in incs]
+        mean_lat = sum(c[0] for c in coords) / len(coords)
+        mean_lon = sum(c[1] for c in coords) / len(coords)
+        dists = [math.sqrt((lat - mean_lat) ** 2 + (lon - mean_lon) ** 2)
+                 for lat, lon in coords]
+        mean_d = sum(dists) / len(dists)
+        self.assertGreater(mean_d, 0, "Incidents must not all be at identical coordinates")
+        variance = sum((d - mean_d) ** 2 for d in dists) / len(dists)
+        std = math.sqrt(variance)
+        cv = std / mean_d if mean_d > 1e-10 else 0
+        score = max(0.0, 1.0 / (1.0 + cv))
+        self.assertGreater(score, 0.6,
+                           f"Cluster score {score:.4f} must exceed 0.6 hotspot threshold")
+
+    def test_detector_classifies_spatial_hotspot(self):
+        net = build_bangalore_network()
+        all_amb = create_default_bangalore_fleet()
+        available = list(all_amb[:5])
+        incs = self._make_hotspot_incidents(net)
+        hospitals = get_default_bangalore_hospitals()
+        detector = ScenarioDetector(network=net, all_ambulances=all_amb)
+        state = detector.detect(
+            available_ambulances=available,
+            pending_incidents=incs,
+            hospitals=hospitals,
+            road_network=net,
+        )
+        self.assertGreater(state.spatial_cluster_score, 0.6,
+                           f"Detector cluster score {state.spatial_cluster_score:.4f} < 0.6")
+        self.assertNotEqual(state.recommended_mode(), DispatchMode.NORMAL,
+                            "Hotspot should not result in NORMAL mode")
+
+    def test_adaptive_responds_to_spatial_pressure(self):
+        net = build_bangalore_network()
+        all_amb = create_default_bangalore_fleet()
+        available = list(all_amb[:5])
+        incs = self._make_hotspot_incidents(net)
+        hospitals = get_default_bangalore_hospitals()
+        strategy = AdaptiveAureonStrategy()
+        for inc in incs:
+            decision = strategy.dispatch(
+                inc, available, hospitals, net, all_amb,
+            )
+            self.assertIsNotNone(decision.ambulance_id,
+                                 f"No ambulance assigned for {inc.id}")
+            available = [a for a in available if a.id != decision.ambulance_id]
+        self.assertNotEqual(strategy._last_mode, DispatchMode.NORMAL,
+                            "Adaptive should not be in NORMAL mode during spatial hotspot")
+
+    def test_healthy_fleet_uses_nearest(self):
+        net = build_bangalore_network()
+        all_amb = create_default_bangalore_fleet()
+        available = list(all_amb)
+        incs = self._make_hotspot_incidents(net)
+        hospitals = get_default_bangalore_hospitals()
+        strategy_normal = AdaptiveAureonStrategy()
+        inc = incs[0]
+        decision = strategy_normal.dispatch(
+            inc, available, hospitals, net, all_amb,
+        )
+        from simulation.src.dispatch.baseline import NearestAvailableStrategy
+        baseline = NearestAvailableStrategy()
+        base_decision = baseline.dispatch(
+            inc, available, hospitals, net, all_amb,
+        )
+        self.assertEqual(decision.ambulance_id, base_decision.ambulance_id,
+                         "With healthy fleet, adaptive should match nearest-available")
+
+    def test_config_fleet_size(self):
+        cfg = SCENARIO_E_CONFIGS["spatial_hotspot"]
+        self.assertEqual(cfg.fleet_size, 5)
+        net = build_bangalore_network()
+        schedule = cfg.schedule_builder(net, cfg)
+        self.assertEqual(len(schedule), 6)
+        hotspot_times = {t for t, i in schedule
+                         if i.location_node_id in self.HOTSPOT_NODES}
+        self.assertEqual(len(hotspot_times), 1,
+                         "All hotspot incidents must share one timestamp")
 
 
 if __name__ == "__main__":
