@@ -180,18 +180,37 @@ class CitySimulationEngine:
         unresolved_queue: list[Incident] = []
         available_ambulances = [a for a in self.ambulances if a.is_available]
 
-        for incident in self.pending_queue:
-            if not available_ambulances:
-                unresolved_queue.append(incident)
-                continue
-
-            decision = self.strategy.dispatch(
-                incident=incident,
+        # Try batch dispatch if strategy supports it
+        batch_decisions: dict[str, Any] = {}
+        if (self.strategy.supports_batch
+                and len(self.pending_queue) >= 2
+                and len(available_ambulances) >= 2):
+            batch_results = self.strategy.dispatch_batch(
+                incidents=self.pending_queue,
                 available_ambulances=available_ambulances,
                 hospitals=self.hospitals,
                 road_network=self.road_network,
                 all_ambulances=self.ambulances,
             )
+            for inc_id, decision in batch_results:
+                batch_decisions[inc_id] = decision
+
+        for incident in self.pending_queue:
+            if not available_ambulances:
+                unresolved_queue.append(incident)
+                continue
+
+            # Use pre-computed batch decision if available
+            if incident.id in batch_decisions:
+                decision = batch_decisions[incident.id]
+            else:
+                decision = self.strategy.dispatch(
+                    incident=incident,
+                    available_ambulances=available_ambulances,
+                    hospitals=self.hospitals,
+                    road_network=self.road_network,
+                    all_ambulances=self.ambulances,
+                )
 
             if decision.ambulance_id is None:
                 unresolved_queue.append(incident)

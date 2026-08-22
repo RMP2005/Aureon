@@ -44,3 +44,24 @@ class BaseDispatchStrategy(ABC):
     ) -> DispatchDecision:
         """Evaluate city state and incident to select optimal response units and destination hospital."""
         ...
+
+    @property
+    def supports_batch(self) -> bool:
+        """Whether this strategy supports batch dispatch for simultaneous incidents."""
+        return False
+
+    def dispatch_batch(
+        self,
+        incidents: list[Incident],
+        available_ambulances: list[Ambulance],
+        hospitals: list[Hospital],
+        road_network: RoadNetwork,
+        all_ambulances: list[Ambulance] | None = None,
+    ) -> list[tuple[str, DispatchDecision]]:
+        """Batch-optimized dispatch for multiple simultaneous incidents.
+
+        Override in strategies that support global optimization.
+        Returns list of (incident_id, decision) pairs.
+        Default implementation returns empty list (no batch optimization).
+        """
+        return []
