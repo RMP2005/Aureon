@@ -420,7 +420,10 @@ class TestRoadDisruptionScenario(unittest.TestCase):
         )
 
     def test_scenario_g_config_applies_disruption(self):
-        from simulation.src.evaluation.phase7_scenarios import SCENARIO_G_CONFIGS
+        try:
+            from simulation.src.evaluation.phase7_scenarios import SCENARIO_G_CONFIGS
+        except ImportError:
+            from src.evaluation.phase7_scenarios import SCENARIO_G_CONFIGS
         config = list(SCENARIO_G_CONFIGS.values())[0]
         net = build_bangalore_network()
         base_congestion = net._edges_by_id["e_mg_indiranagar"].congestion_factor
@@ -994,7 +997,10 @@ class TestSpatialHotspot(unittest.TestCase):
         decision = strategy_normal.dispatch(
             inc, available, hospitals, net, all_amb,
         )
-        from simulation.src.dispatch.baseline import NearestAvailableStrategy
+        try:
+            from simulation.src.dispatch.baseline import NearestAvailableStrategy
+        except ImportError:
+            from src.dispatch.baseline import NearestAvailableStrategy
         baseline = NearestAvailableStrategy()
         base_decision = baseline.dispatch(
             inc, available, hospitals, net, all_amb,
