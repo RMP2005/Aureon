@@ -1,5 +1,8 @@
 """Simulation management and Digital Twin execution endpoints."""
 
+import asyncio
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from src.models.schemas import (
@@ -9,6 +12,8 @@ from src.models.schemas import (
 )
 from src.services.simulation_service import simulation_service
 
+logger = logging.getLogger("aureon.api.simulation")
+
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 
@@ -16,7 +21,8 @@ router = APIRouter(prefix="/simulation", tags=["simulation"])
 async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
     """Execute a scenario simulation with specified strategy and duration."""
     try:
-        result = simulation_service.run_simulation(
+        result = await asyncio.to_thread(
+            simulation_service.run_simulation,
             strategy_name=request.strategy,
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
@@ -24,9 +30,10 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
         )
         return ResponseEnvelope(data=result)
     except Exception as e:
+        logger.exception("Simulation execution failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Simulation execution failed: {str(e)}",
+            detail="Simulation execution failed",
         ) from e
 
 
@@ -34,16 +41,18 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
 async def compare_strategies(request: SimulationCompareRequest) -> ResponseEnvelope:
     """Run side-by-side benchmark comparing Baseline vs Aureon intelligence."""
     try:
-        report = simulation_service.run_comparison(
+        report = await asyncio.to_thread(
+            simulation_service.run_comparison,
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
             seed=request.seed,
         )
         return ResponseEnvelope(data=report)
     except Exception as e:
+        logger.exception("Strategy comparison failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Strategy comparison failed: {str(e)}",
+            detail="Strategy comparison failed",
         ) from e
 
 

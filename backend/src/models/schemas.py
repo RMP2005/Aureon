@@ -34,16 +34,16 @@ class SimulationRunRequest(BaseModel):
     """Request to execute a digital twin simulation run."""
 
     strategy: str = Field(default="aureon", description="'aureon' or 'baseline'")
-    duration_minutes: float = Field(default=60.0, ge=5.0, le=1440.0)
-    incident_rate_per_hour: float = Field(default=12.0, ge=1.0, le=60.0)
+    duration_minutes: float = Field(default=60.0, ge=5.0, le=120.0)
+    incident_rate_per_hour: float = Field(default=12.0, ge=1.0, le=30.0)
     seed: int = Field(default=42)
 
 
 class SimulationCompareRequest(BaseModel):
     """Request to benchmark Baseline vs Aureon on identical conditions."""
 
-    duration_minutes: float = Field(default=60.0, ge=5.0, le=1440.0)
-    incident_rate_per_hour: float = Field(default=14.0, ge=1.0, le=60.0)
+    duration_minutes: float = Field(default=60.0, ge=5.0, le=120.0)
+    incident_rate_per_hour: float = Field(default=14.0, ge=1.0, le=30.0)
     seed: int = Field(default=42)
 
 
