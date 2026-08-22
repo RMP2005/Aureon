@@ -4,8 +4,9 @@ import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.api.routes import router as api_router
 from src.core.config import settings
@@ -13,6 +14,16 @@ from src.core.logging import setup_logging
 from src.core.rate_limit import RateLimitMiddleware
 
 logger: logging.Logger | None = None
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds standard security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        return response
 
 
 @asynccontextmanager
@@ -40,13 +51,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 app.add_middleware(
     RateLimitMiddleware,
     max_requests=settings.RATE_LIMIT_MAX_REQUESTS,
     window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS,
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

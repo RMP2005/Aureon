@@ -106,3 +106,59 @@ def test_list_runs_reflects_eviction() -> None:
     assert "a" not in run_ids
     assert "b" in run_ids
     assert "c" in run_ids
+
+
+# --- CORS / Security header tests ---
+
+
+@pytest.mark.asyncio
+async def test_security_headers_present() -> None:
+    """Responses include standard security headers."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/health")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+
+
+@pytest.mark.asyncio
+async def test_cors_does_not_allow_disallowed_methods() -> None:
+    """CORS preflight rejects methods not in the allow list."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.options(
+            "/api/v1/health",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "DELETE",
+            },
+        )
+    # DELETE is not in the allowed methods, so Access-Control-Allow-Methods
+    # should NOT include DELETE
+    allow_methods = response.headers.get("access-control-allow-methods", "")
+    assert "DELETE" not in allow_methods
+
+
+@pytest.mark.asyncio
+async def test_cors_allows_get_and_post() -> None:
+    """CORS preflight succeeds for allowed methods."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        for method in ("GET", "POST"):
+            response = await client.options(
+                "/api/v1/health",
+                headers={
+                    "Origin": "http://localhost:3000",
+                    "Access-Control-Request-Method": method,
+                },
+            )
+            allow_methods = response.headers.get("access-control-allow-methods", "")
+            assert method in allow_methods
+
+
+@pytest.mark.asyncio
+async def test_cors_origins_default_to_localhost() -> None:
+    """Default CORS origins are configured for local development."""
+    from src.core.config import settings
+
+    assert "http://localhost:3000" in settings.CORS_ORIGINS
