@@ -42,6 +42,19 @@ export interface SimulationRunResult {
   executed_at: string;
 }
 
+export interface RunProgress {
+  run_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  progress_percent: number;
+  elapsed_seconds: number;
+  duration_seconds: number;
+  completed_incidents: number;
+  reported_incidents: number;
+  active_ambulances: number;
+  available_ambulances: number;
+  error: string | null;
+}
+
 export interface ComparisonResult {
   comparison_id: string;
   baseline: Record<string, unknown>;
@@ -109,4 +122,8 @@ export async function listSimulationResults(): Promise<ApiResponse<RunSummary[]>
 
 export async function getRunById(runId: string): Promise<ApiResponse<SimulationRunResult>> {
   return apiFetch<SimulationRunResult>(`/simulation/results/${runId}`);
+}
+
+export async function getRunStatus(runId: string): Promise<ApiResponse<RunProgress>> {
+  return apiFetch<RunProgress>(`/simulation/${runId}/status`);
 }

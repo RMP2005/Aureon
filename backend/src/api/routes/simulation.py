@@ -19,10 +19,9 @@ router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 @router.post("/run", response_model=ResponseEnvelope)
 async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
-    """Execute a scenario simulation with specified strategy and duration."""
+    """Start a scenario simulation in the background and return run_id immediately."""
     try:
-        result = await asyncio.to_thread(
-            get_simulation_service().run_simulation,
+        result = get_simulation_service().start_simulation_background(
             strategy_name=request.strategy,
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
@@ -30,11 +29,24 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
         )
         return ResponseEnvelope(data=result)
     except Exception as e:
-        logger.exception("Simulation execution failed")
+        logger.exception("Simulation start failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Simulation execution failed",
+            detail="Simulation start failed",
         ) from e
+
+
+@router.get("/{run_id}/status", response_model=ResponseEnvelope)
+async def get_run_status(run_id: str) -> ResponseEnvelope:
+    """Get live progress status of a simulation run."""
+    svc = get_simulation_service()
+    progress = svc._tracker.get(run_id)
+    if progress is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Simulation run '{run_id}' not found",
+        )
+    return ResponseEnvelope(data=progress)
 
 
 @router.post("/compare", response_model=ResponseEnvelope)

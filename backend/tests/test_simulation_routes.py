@@ -1,9 +1,12 @@
 """Tests for simulation API endpoints."""
 
+import time
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import app
+from src.services.simulation_service import get_simulation_service
 
 
 @pytest.mark.asyncio
@@ -36,8 +39,8 @@ async def test_simulation_run_endpoint() -> None:
     data = response.json()
     assert data["status"] == "ok"
     assert "run_id" in data["data"]
-    assert "metrics" in data["data"]
-    assert data["data"]["metrics"]["total_incidents_reported"] > 0
+    assert data["data"]["status"] == "queued"
+    assert data["data"]["run_id"].startswith("sim_")
 
 
 @pytest.mark.asyncio
@@ -113,10 +116,8 @@ async def test_run_error_hides_internal_details() -> None:
                 "seed": 42,
             },
         )
-    # Valid request should succeed
     assert response.status_code == 200
     data = response.json()
-    # If there were an error, verify no internal details leak
     if response.status_code == 500:
         detail = data.get("detail", "")
         assert "Traceback" not in detail

@@ -65,6 +65,21 @@ class SimulationCreateRequest(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
 
 
+class RunProgressResponse(BaseModel):
+    """Live progress status for a background simulation run."""
+
+    run_id: str
+    status: str = "queued"
+    progress_percent: float = 0.0
+    elapsed_seconds: float = 0.0
+    duration_seconds: float = 0.0
+    completed_incidents: int = 0
+    reported_incidents: int = 0
+    active_ambulances: int = 0
+    available_ambulances: int = 0
+    error: str | None = None
+
+
 class SimulationResponse(BaseModel):
     """Simulation state response."""
 

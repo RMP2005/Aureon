@@ -1,22 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { runSimulation, type SimulationRunResult } from '@/lib/api';
+import {
+  runSimulation,
+  getRunStatus,
+  getRunById,
+  type SimulationRunResult,
+  type RunProgress,
+} from '@/lib/api';
 
 export default function SimulationPage() {
   const [strategy, setStrategy] = useState('aureon');
   const [duration, setDuration] = useState(30);
   const [rate, setRate] = useState(12);
   const [seed, setSeed] = useState(42);
-  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<RunProgress | null>(null);
   const [result, setResult] = useState<SimulationRunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearPolling = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearPolling();
+  }, [clearPolling]);
 
   const handleRun = async () => {
-    setLoading(true);
+    clearPolling();
     setError(null);
     setResult(null);
+    setProgress({ run_id: '', status: 'queued', progress_percent: 0, elapsed_seconds: 0, duration_seconds: 0, completed_incidents: 0, reported_incidents: 0, active_ambulances: 0, available_ambulances: 0, error: null });
+
     try {
       const res = await runSimulation({
         strategy,
@@ -24,15 +44,46 @@ export default function SimulationPage() {
         incident_rate_per_hour: rate,
         seed,
       });
-      setResult(res.data);
+      const runId = res.data.run_id;
+      setProgress((prev) => prev ? { ...prev, run_id: runId, status: 'queued' } : null);
+
+      timerRef.current = setInterval(async () => {
+        try {
+          const statusRes = await getRunStatus(runId);
+          const p = statusRes.data;
+          setProgress(p);
+
+          if (p.status === 'completed') {
+            clearPolling();
+            const resultRes = await getRunById(runId);
+            setResult(resultRes.data);
+            setProgress(null);
+          } else if (p.status === 'failed') {
+            clearPolling();
+            setError(p.error || 'Simulation failed');
+            setProgress(null);
+          }
+        } catch {
+          clearPolling();
+          setError('Failed to fetch simulation status');
+          setProgress(null);
+        }
+      }, 1000);
     } catch (e: unknown) {
+      clearPolling();
       setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+      setProgress(null);
     }
   };
 
+  const isRunning = progress !== null && (progress.status === 'queued' || progress.status === 'running');
   const metricEntries = result ? Object.entries(result.metrics) : [];
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -89,12 +140,55 @@ export default function SimulationPage() {
           </div>
           <button
             onClick={handleRun}
-            disabled={loading}
+            disabled={isRunning}
             className="px-6 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50"
           >
-            {loading ? 'Running...' : 'Run Simulation'}
+            {isRunning ? 'Running...' : 'Run Simulation'}
           </button>
         </div>
+
+        {progress && isRunning && (
+          <div className="glass-panel rounded-2xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              <h2 className="text-lg font-semibold">
+                {progress.status === 'queued' ? 'Queued' : 'Running'} — {progress.run_id}
+              </h2>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-[var(--color-text-secondary)] mb-1">
+                <span>Progress</span>
+                <span>{progress.progress_percent.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-white/5 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress.progress_percent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="glass-panel rounded-xl p-3 text-center">
+                <p className="text-lg font-semibold">{formatTime(progress.elapsed_seconds)} / {formatTime(progress.duration_seconds)}</p>
+                <p className="text-xs text-[var(--color-text-muted)] uppercase">Elapsed</p>
+              </div>
+              <div className="glass-panel rounded-xl p-3 text-center">
+                <p className="text-lg font-semibold">{progress.completed_incidents}</p>
+                <p className="text-xs text-[var(--color-text-muted)] uppercase">Completed</p>
+              </div>
+              <div className="glass-panel rounded-xl p-3 text-center">
+                <p className="text-lg font-semibold">{progress.reported_incidents}</p>
+                <p className="text-xs text-[var(--color-text-muted)] uppercase">Reported</p>
+              </div>
+              <div className="glass-panel rounded-xl p-3 text-center">
+                <p className="text-lg font-semibold">{progress.available_ambulances} / {progress.available_ambulances + progress.active_ambulances}</p>
+                <p className="text-xs text-[var(--color-text-muted)] uppercase">Fleet Available</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="glass-panel rounded-2xl p-6 mb-6 border border-red-500/20">

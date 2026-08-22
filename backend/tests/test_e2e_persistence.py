@@ -7,11 +7,14 @@ simulation → SQLite path with small, deterministic simulations.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 from src.services.run_store import RunStore
+from src.services.simulation_service import get_simulation_service
 
 
 # ---------------------------------------------------------------------------
@@ -44,6 +47,18 @@ async def _post_run(
     return resp.json()
 
 
+def _wait_for_completion(run_id: str, timeout: float = 60.0) -> dict:
+    """Block until the background run completes. Returns final tracker state."""
+    svc = get_simulation_service()
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        prog = svc._tracker.get(run_id)
+        if prog and prog["status"] in ("completed", "failed"):
+            return prog
+        time.sleep(0.3)
+    raise TimeoutError(f"Run {run_id} did not complete within {timeout}s")
+
+
 async def _get_run(run_id: str) -> dict:
     """GET /api/v1/simulation/results/{run_id} and return the JSON body."""
     async with AsyncClient(transport=_transport, base_url=_BASE) as client:
@@ -67,31 +82,25 @@ async def _list_runs() -> list[dict]:
 
 @pytest.mark.asyncio
 async def test_run_persists_and_is_retrievable() -> None:
-    """POST a simulation, GET it back by run_id, verify data matches."""
+    """POST a simulation, wait for completion, GET it back by run_id, verify data matches."""
     body = await _post_run(seed=9901)
     run_id = body["data"]["run_id"]
+    assert body["data"]["status"] == "queued"
 
-    # Retrieve by id
+    _wait_for_completion(run_id)
+
     fetched = await _get_run(run_id)
     fetched_data = fetched["data"]
 
-    # run_id round-trips
     assert fetched_data["run_id"] == run_id
-
-    # Strategy round-trips
-    assert fetched_data["strategy"] == body["data"]["strategy"]
-
-    # Parameters round-trip
+    assert "Hybrid" in fetched_data["strategy"]
     assert fetched_data["parameters"]["duration_minutes"] == 5.0
     assert fetched_data["parameters"]["incident_rate_per_hour"] == 2.0
     assert fetched_data["parameters"]["seed"] == 9901
 
-    # Metrics present and have real values
     metrics = fetched_data["metrics"]
     assert metrics["total_incidents_reported"] > 0
     assert metrics["total_incidents_dispatched"] > 0
-
-    # executed_at present
     assert fetched_data["executed_at"]
 
 
@@ -101,13 +110,14 @@ async def test_list_runs_includes_persisted_run() -> None:
     body = await _post_run(seed=9902)
     run_id = body["data"]["run_id"]
 
+    _wait_for_completion(run_id)
+
     runs = await _list_runs()
     ids = [r["run_id"] for r in runs]
     assert run_id in ids
 
     summary = next(r for r in runs if r["run_id"] == run_id)
     assert summary["type"] == "single_run"
-    assert summary["strategy"] == body["data"]["strategy"]
     assert summary["status"] == "completed"
 
 
@@ -123,13 +133,13 @@ async def test_fresh_runstore_retrieves_persisted_run() -> None:
     body = await _post_run(seed=9903)
     run_id = body["data"]["run_id"]
 
-    # Create a fresh RunStore with no db_path → uses the module-level
-    # default connection set by init_db(":memory:") in conftest.
+    _wait_for_completion(run_id)
+
     fresh_store = RunStore()
     result = fresh_store.get_run(run_id)
     assert result is not None
     assert result["run_id"] == run_id
-    assert result["strategy"] == body["data"]["strategy"]
+    assert "Hybrid" in result["strategy"]
 
 
 @pytest.mark.asyncio
@@ -137,6 +147,8 @@ async def test_fresh_runstore_sees_run_in_list() -> None:
     """list_runs on a fresh RunStore includes the run written by the service."""
     body = await _post_run(seed=9904)
     run_id = body["data"]["run_id"]
+
+    _wait_for_completion(run_id)
 
     fresh_store = RunStore()
     runs = fresh_store.list_runs()
@@ -153,7 +165,12 @@ async def test_fresh_runstore_sees_run_in_list() -> None:
 async def test_default_strategy_is_hybrid() -> None:
     """Running with strategy='aureon' produces a Hybrid strategy result."""
     body = await _post_run(strategy="aureon", seed=9905)
-    assert "Hybrid" in body["data"]["strategy"]
+    run_id = body["data"]["run_id"]
+
+    _wait_for_completion(run_id)
+
+    fetched = await _get_run(run_id)
+    assert "Hybrid" in fetched["data"]["strategy"]
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +207,8 @@ async def test_comparison_persists_and_is_retrievable() -> None:
 
 @pytest.mark.asyncio
 async def test_failed_simulation_persisted_with_error_no_internal_leak() -> None:
-    """When run_simulation fails, the failed run is persisted with status
-    'failed' and the API response does not leak internal details."""
+    """When a background simulation fails, it is persisted with status
+    'failed' and the status endpoint does not leak internal details."""
     from unittest.mock import patch
 
     def _explode(*args: object, **kwargs: object) -> None:
@@ -209,13 +226,18 @@ async def test_failed_simulation_persisted_with_error_no_internal_leak() -> None
                 },
             )
 
-    # API returns 500 with generic message, no internal details
-    assert resp.status_code == 500
-    detail = resp.json().get("detail", "")
-    assert "Traceback" not in detail
-    assert "File " not in detail
-    assert "RuntimeError" not in detail
-    assert "deliberate test failure" not in detail
+    # POST now returns 200 with queued status (background handles failure)
+    assert resp.status_code == 200
+    run_id = resp.json()["data"]["run_id"]
+
+    # Poll until the background worker marks it failed
+    prog = _wait_for_completion(run_id, timeout=10.0)
+    assert prog["status"] == "failed"
+    assert prog["error"] is not None
+    assert "Traceback" not in prog["error"]
+    assert "File " not in prog["error"]
+    assert "RuntimeError" not in prog["error"]
+    assert "deliberate test failure" not in prog["error"]
 
     # The failed run IS persisted in SQLite with status=failed
     fresh_store = RunStore()
@@ -224,8 +246,6 @@ async def test_failed_simulation_persisted_with_error_no_internal_leak() -> None
     assert len(failed_runs) >= 1, "Expected at least one failed run persisted"
 
     failed = failed_runs[0]
-    # The full result contains the error_message
     full = fresh_store.get_run(failed["run_id"])
     assert full is not None
-    # run_id is present in the persisted record
     assert "run_id" in full
