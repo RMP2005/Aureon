@@ -109,7 +109,16 @@ class SimulationService:
             incident_rate_per_hour=incident_rate_per_hour,
         )
 
-        metrics = engine.run_scenario(schedule=schedule, duration_minutes=duration_minutes)
+        try:
+            metrics = engine.run_scenario(schedule=schedule, duration_minutes=duration_minutes)
+        except Exception as exc:
+            self._store.save_run(
+                run_id,
+                {"run_id": run_id, "strategy": strategy.name},
+                status="failed",
+                error_message=str(exc),
+            )
+            raise
 
         result_data = {
             "run_id": run_id,
@@ -134,13 +143,22 @@ class SimulationService:
         seed: int = 42,
     ) -> dict[str, Any]:
         """Run identical scenario comparison between Baseline and Aureon intelligence."""
-        comparison = SimulationEvaluator.run_benchmark(
-            duration_minutes=duration_minutes,
-            incident_rate_per_hour=incident_rate_per_hour,
-            seed=seed,
-        )
-        report = comparison.to_dict()
         run_id = f"cmp_{uuid.uuid4().hex[:8]}"
+        try:
+            comparison = SimulationEvaluator.run_benchmark(
+                duration_minutes=duration_minutes,
+                incident_rate_per_hour=incident_rate_per_hour,
+                seed=seed,
+            )
+        except Exception as exc:
+            self._store.save_run(
+                run_id,
+                {"comparison_id": run_id},
+                status="failed",
+                error_message=str(exc),
+            )
+            raise
+        report = comparison.to_dict()
         report["comparison_id"] = run_id
         report["executed_at"] = datetime.now(timezone.utc).isoformat()
         self._store.save_run(run_id, report, run_type="comparison")
