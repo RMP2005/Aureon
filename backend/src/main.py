@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router as api_router
 from src.core.config import settings
 from src.core.logging import setup_logging
+from src.core.rate_limit import RateLimitMiddleware
 
 logger: logging.Logger | None = None
 
@@ -41,6 +42,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=settings.RATE_LIMIT_MAX_REQUESTS,
+    window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS,
 )
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

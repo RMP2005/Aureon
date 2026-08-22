@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     SIMULATION_TICK_RATE: float = 0.1
     SIMULATION_MAX_STEPS: int = 10000
 
+    # Resource protection
+    RATE_LIMIT_MAX_REQUESTS: int = 30
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    MAX_STORED_RUNS: int = 100
+
     # ML
     ML_MODEL_DIR: str = "./models"
     ML_DEFAULT_CONFIDENCE_THRESHOLD: float = 0.7

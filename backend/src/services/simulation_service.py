@@ -5,9 +5,12 @@ from __future__ import annotations
 import logging
 import sys
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from src.core.config import settings
 
 # Ensure workspace root and simulation are in sys.path
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
@@ -42,7 +45,7 @@ logger = logging.getLogger("aureon.services.simulation")
 class SimulationService:
     """Manages digital twin simulation runs, state snapshots, and strategy comparisons."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_stored_runs: int = 100) -> None:
         self.road_network = build_bangalore_network()
         self.hospitals = get_default_bangalore_hospitals()
         self.ambulances = create_default_bangalore_fleet()
@@ -55,9 +58,17 @@ class SimulationService:
             strategy=AureonDecisionEngine(),
         )
 
-        # Store historical simulation run results: run_id -> dict
-        self._runs: dict[str, dict[str, Any]] = {}
+        # Store historical simulation run results (LRU eviction)
+        self._max_stored_runs = max_stored_runs
+        self._runs: OrderedDict[str, dict[str, Any]] = OrderedDict()
         logger.info("SimulationService initialized with Bangalore Digital Twin topology")
+
+    def _store_run(self, run_id: str, data: dict[str, Any]) -> None:
+        """Store a run result, evicting the oldest if at capacity."""
+        self._runs[run_id] = data
+        self._runs.move_to_end(run_id)
+        while len(self._runs) > self._max_stored_runs:
+            self._runs.popitem(last=False)
 
     def get_city_state(self) -> dict[str, Any]:
         """Retrieve real-time state of the city digital twin."""
@@ -113,7 +124,7 @@ class SimulationService:
             "executed_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        self._runs[run_id] = result_data
+        self._store_run(run_id, result_data)
         return result_data
 
     def run_comparison(
@@ -132,7 +143,7 @@ class SimulationService:
         run_id = f"cmp_{uuid.uuid4().hex[:8]}"
         report["comparison_id"] = run_id
         report["executed_at"] = datetime.now(timezone.utc).isoformat()
-        self._runs[run_id] = report
+        self._store_run(run_id, report)
         return report
 
     def get_run_results(self, run_id: str) -> dict[str, Any] | None:
@@ -152,4 +163,4 @@ class SimulationService:
 
 
 # Singleton instance for the backend
-simulation_service = SimulationService()
+simulation_service = SimulationService(max_stored_runs=settings.MAX_STORED_RUNS)
