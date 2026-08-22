@@ -7,14 +7,31 @@ dependencies = [
     "numpy>=1.26.0",
     "pydantic>=2.9.0",
     "pyyaml>=6.0.0",
+    "networkx>=3.3",
+    "scipy>=1.13.0",
 ]
 
 [project.optional-dependencies]
+maps = [
+    "osmnx>=1.9.0",
+    "pyrosm>=0.7.0",
+]
+ml = [
+    "pandas>=2.2.0",
+    "scikit-learn>=1.5.0",
+    "xgboost>=2.1.0",
+]
+optimization = [
+    "ortools>=9.10.0",
+]
 viz = ["matplotlib>=3.9.0"]
 dev = [
     "pytest>=8.2.0",
     "ruff>=0.5.0",
     "mypy>=1.10.0",
+]
+all = [
+    "aureon-simulation[maps,ml,optimization]",
 ]
 
 [tool.ruff]
