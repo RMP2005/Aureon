@@ -136,14 +136,14 @@ def _build_c(net, config, **kw):
 
 
 def _build_d(net, config, **kw):
+    """4 incidents at t=60s with fleet_size=3. Genuine simultaneous competition."""
     locs = [
         "node_mg_road", "node_indiranagar", "node_koramangala_sony",
-        "node_hebbal_flyover", "node_btm_layout", "node_whitefield_itpl",
+        "node_btm_layout",
     ]
     cats = [
         IncidentCategory.CARDIAC_ARREST, IncidentCategory.MAJOR_TRAUMA,
-        IncidentCategory.TRAFFIC_COLLISION, IncidentCategory.ACUTE_STROKE,
-        IncidentCategory.RESPIRATORY_DISTRESS, IncidentCategory.GENERAL_MEDICAL,
+        IncidentCategory.TRAFFIC_COLLISION, IncidentCategory.GENERAL_MEDICAL,
     ]
     out = [_mk(f"inc_d{i+1:02d}", net, nid, 60.0, cat)
            for i, (nid, cat) in enumerate(zip(locs, cats))]
@@ -250,8 +250,8 @@ SCENARIO_C_CONFIGS = {
 SCENARIO_D_CONFIGS = {
     "simultaneous_incidents": ScenarioConfig(
         name="simultaneous_incidents",
-        description="6 incidents all at t=60s with fleet=6. Forces allocation tradeoffs.",
-        fleet_size=6, duration_minutes=30.0, incident_rate_per_hour=20.0,
+        description="4 incidents all at t=60s with fleet=3. Forces allocation competition.",
+        fleet_size=3, duration_minutes=30.0, incident_rate_per_hour=20.0,
         schedule_builder=_build_d,
     ),
 }

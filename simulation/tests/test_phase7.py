@@ -28,7 +28,8 @@ try:
     from simulation.src.network.bangalore_map import build_bangalore_network
     from simulation.src.network.road_graph import RoadNetwork, RoadNode, RoadEdge, RoadType
     from simulation.src.evaluation.phase7_scenarios import (
-        ScenarioConfig, run_scenario_single, run_scenario_comparison, summarize_results,
+        ScenarioConfig, SCENARIO_D_CONFIGS,
+        run_scenario_single, run_scenario_comparison, summarize_results,
         create_fleet_scarcity_scenario, create_critical_cluster_scenario,
         create_hospital_congestion_scenario, create_road_disruption_scenario,
         create_combined_disaster_scenario,
@@ -49,7 +50,8 @@ except ImportError:
     from src.network.bangalore_map import build_bangalore_network
     from src.network.road_graph import RoadNetwork, RoadNode, RoadEdge, RoadType
     from src.evaluation.phase7_scenarios import (
-        ScenarioConfig, run_scenario_single, run_scenario_comparison, summarize_results,
+        ScenarioConfig, SCENARIO_D_CONFIGS,
+        run_scenario_single, run_scenario_comparison, summarize_results,
         create_fleet_scarcity_scenario, create_critical_cluster_scenario,
         create_hospital_congestion_scenario, create_road_disruption_scenario,
         create_combined_disaster_scenario,
@@ -735,6 +737,160 @@ class TestScenarioDetectorCoveragePressure(unittest.TestCase):
         )
         self.assertEqual(state.coverage_deficit, 0.0,
                          "Full fleet available → no coverage deficit")
+
+
+class TestSimultaneousDispatch(unittest.TestCase):
+    """4 incidents at the same tick, 3 ambulances — genuine competition for batch dispatch."""
+
+    @staticmethod
+    def _setup():
+        net = build_bangalore_network()
+        all_amb = create_default_bangalore_fleet()
+        available = list(all_amb[:3])
+        hospitals = get_default_bangalore_hospitals()
+
+        cats = [
+            IncidentCategory.CARDIAC_ARREST,
+            IncidentCategory.MAJOR_TRAUMA,
+            IncidentCategory.TRAFFIC_COLLISION,
+            IncidentCategory.GENERAL_MEDICAL,
+        ]
+        locs = [
+            "node_mg_road", "node_indiranagar",
+            "node_koramangala_sony", "node_btm_layout",
+        ]
+        t = 120.0
+        incidents = []
+        for i, (nid, cat) in enumerate(zip(locs, cats)):
+            profile = INCIDENT_PROFILES[cat]
+            incidents.append(Incident(
+                id=f"inc_s{i+1}", category=cat, severity=profile.severity,
+                required_capability=profile.required_capability,
+                location_node_id=nid, location_name=nid,
+                latitude=net.nodes[nid].latitude,
+                longitude=net.nodes[nid].longitude,
+                reported_at_tick=1, reported_at_sim_time_sec=t,
+                target_response_time_sec=profile.target_response_time_sec,
+                base_on_scene_time_sec=profile.base_on_scene_time_sec,
+            ))
+        return net, available, all_amb, hospitals, incidents
+
+    def test_all_incidents_same_timestamp(self):
+        _, _, _, _, incidents = self._setup()
+        times = {i.reported_at_sim_time_sec for i in incidents}
+        self.assertEqual(len(times), 1,
+                         f"Expected 1 unique timestamp, got {times}")
+
+    def test_fewer_ambulances_than_incidents(self):
+        _, available, _, _, incidents = self._setup()
+        self.assertLess(len(available), len(incidents),
+                        "Need fewer ambulances than incidents for competition")
+
+    def test_batch_returns_valid_assignments(self):
+        net, available, all_amb, hospitals, incidents = self._setup()
+        strategy = AdaptiveAureonStrategy()
+        results = strategy.dispatch_batch(
+            incidents, available, hospitals, net, all_amb,
+        )
+        self.assertGreater(len(results), 0, "Batch dispatch returned no results")
+
+        assigned_amb_ids = set()
+        for inc_id, decision in results:
+            self.assertIsNotNone(decision.ambulance_id)
+            self.assertNotIn(decision.ambulance_id, assigned_amb_ids,
+                             f"Ambulance {decision.ambulance_id} assigned twice")
+            assigned_amb_ids.add(decision.ambulance_id)
+            self.assertTrue(
+                any(a.id == decision.ambulance_id for a in available),
+                f"Assigned ambulance {decision.ambulance_id} not in available pool",
+            )
+
+    def test_batch_respects_capability_constraints(self):
+        net, available, all_amb, hospitals, incidents = self._setup()
+        strategy = AdaptiveAureonStrategy()
+        results = strategy.dispatch_batch(
+            incidents, available, hospitals, net, all_amb,
+        )
+        als_incidents = [
+            inc for inc in incidents
+            if inc.required_capability in (AmbulanceCapability.ALS, AmbulanceCapability.MICU)
+        ]
+        als_ambulances = [
+            amb for amb in available
+            if amb.capability in (AmbulanceCapability.ALS, AmbulanceCapability.MICU)
+        ]
+        if len(als_incidents) > len(als_ambulances):
+            unassigned_als = len(als_incidents) - len(als_ambulances)
+            assigned_als = sum(
+                1 for inc_id, dec in results
+                if next(i for i in incidents if i.id == inc_id).required_capability
+                in (AmbulanceCapability.ALS, AmbulanceCapability.MICU)
+                and next(a for a in available if a.id == dec.ambulance_id).can_handle(
+                    next(i for i in incidents if i.id == inc_id).required_capability,
+                )
+            )
+            self.assertGreaterEqual(
+                assigned_als, len(als_ambulances),
+                "All available ALS ambulances should be assigned to ALS incidents",
+            )
+
+    def test_batch_vs_sequential_greedy(self):
+        net, available, all_amb, hospitals, incidents = self._setup()
+
+        strategy_batch = AdaptiveAureonStrategy()
+        batch_results = strategy_batch.dispatch_batch(
+            incidents, available, hospitals, net, all_amb,
+        )
+        batch_map = {inc_id: dec for inc_id, dec in batch_results}
+
+        strategy_greedy = AdaptiveAureonStrategy()
+        sorted_inc = sorted(
+            incidents,
+            key=lambda i: (
+                {"critical": 0, "high": 1, "moderate": 2, "low": 3}.get(
+                    i.severity.value, 99),
+                0 if i.required_capability.value == "ALS" else 1,
+            ),
+        )
+        greedy_available = list(available)
+        greedy_map = {}
+        for inc in sorted_inc:
+            if not greedy_available:
+                break
+            dec = strategy_greedy.dispatch(
+                inc, greedy_available, hospitals, net, all_amb,
+            )
+            if dec.ambulance_id:
+                greedy_map[inc.id] = dec
+                greedy_available = [
+                    a for a in greedy_available if a.id != dec.ambulance_id
+                ]
+
+        batch_assigned = set(batch_map.keys())
+        greedy_assigned = set(greedy_map.keys())
+        self.assertEqual(batch_assigned, greedy_assigned,
+                         f"Batch assigned {batch_assigned} vs greedy {greedy_assigned}")
+
+        for inc_id in batch_assigned:
+            b = batch_map[inc_id]
+            g = greedy_map[inc_id]
+            same = b.ambulance_id == g.ambulance_id
+            inc = next(i for i in incidents if i.id == inc_id)
+            status = "SAME" if same else "DIFFERENT"
+            print(
+                f"  {inc_id} ({inc.severity.value}): "
+                f"batch={b.ambulance_id} greedy={g.ambulance_id} [{status}]"
+            )
+
+    def test_config_has_4_incidents_3_ambulances(self):
+        cfg = SCENARIO_D_CONFIGS["simultaneous_incidents"]
+        self.assertEqual(cfg.fleet_size, 3)
+        self.assertIn("4 incidents", cfg.description)
+        net = build_bangalore_network()
+        schedule = cfg.schedule_builder(net, cfg)
+        self.assertEqual(len(schedule), 4)
+        times = {t for t, _ in schedule}
+        self.assertEqual(len(times), 1, "All incidents must share one timestamp")
 
 
 if __name__ == "__main__":
