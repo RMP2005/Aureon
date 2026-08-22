@@ -385,19 +385,66 @@ class TestScenarioRunner(unittest.TestCase):
 class TestRoadDisruptionScenario(unittest.TestCase):
     def test_disruption_increases_eta(self):
         net = build_bangalore_network()
-        hospitals = get_default_bangalore_hospitals()
-
         route_before = net.calculate_route("node_mg_road", "node_indiranagar", "time")
         self.assertTrue(route_before.found)
 
-        for edge_id in ["e_mg_indiranagar", "e_mg_indiranagar_rev"]:
-            if edge_id in net._edges_by_id:
-                net._edges_by_id[edge_id].congestion_factor = 3.0
+        net._edges_by_id["e_mg_indiranagar"].congestion_factor = 3.0
         net.invalidate_route_cache()
 
         route_after = net.calculate_route("node_mg_road", "node_indiranagar", "time")
         self.assertTrue(route_after.found)
         self.assertGreater(route_after.estimated_time_seconds, route_before.estimated_time_seconds)
+
+    def test_ambulance_route_uses_disrupted_edge(self):
+        net = build_bangalore_network()
+        route = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(route.found)
+        edge_ids = [e.id for e in route.edges]
+        self.assertIn("e_mg_indiranagar", edge_ids)
+
+    def test_disruption_materially_increases_ambulance_eta(self):
+        net = build_bangalore_network()
+        route_before = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(route_before.found)
+
+        net._edges_by_id["e_mg_indiranagar"].congestion_factor = 3.0
+        net.invalidate_route_cache()
+
+        route_after = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(route_after.found)
+        self.assertGreater(
+            route_after.estimated_time_seconds,
+            route_before.estimated_time_seconds * 1.5,
+        )
+
+    def test_scenario_g_config_applies_disruption(self):
+        from simulation.src.evaluation.phase7_scenarios import SCENARIO_G_CONFIGS
+        config = list(SCENARIO_G_CONFIGS.values())[0]
+        net = build_bangalore_network()
+        base_congestion = net._edges_by_id["e_mg_indiranagar"].congestion_factor
+
+        for mod in config.road_modifications:
+            if mod["edge_id"] in net._edges_by_id:
+                net._edges_by_id[mod["edge_id"]].congestion_factor = mod["congestion_factor"]
+        net.invalidate_route_cache()
+
+        self.assertEqual(net._edges_by_id["e_mg_indiranagar"].congestion_factor, 3.0)
+        route = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(route.found)
+        self.assertGreater(route.estimated_time_seconds, 600.0)
+
+    def test_cache_invalidation_prevents_stale_routes(self):
+        net = build_bangalore_network()
+        r1 = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(r1.found)
+        eta_before = r1.estimated_time_seconds
+
+        net._edges_by_id["e_mg_indiranagar"].congestion_factor = 3.0
+        net.invalidate_route_cache()
+
+        r2 = net.calculate_route("station_central_cbd", "node_indiranagar", "time")
+        self.assertTrue(r2.found)
+        self.assertGreater(r2.estimated_time_seconds, eta_before)
 
 
 class TestRouteCacheInvalidation(unittest.TestCase):
