@@ -51,9 +51,12 @@ logger = logging.getLogger("aureon.services.simulation")
 class ProgressTracker:
     """Thread-safe in-memory progress tracking for background simulation runs."""
 
+    _MAX_FINISHED: int = 50
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._runs: dict[str, dict[str, Any]] = {}
+        self._finished_order: list[str] = []
 
     def create(self, run_id: str, strategy: str, duration_seconds: float) -> None:
         with self._lock:
@@ -75,6 +78,16 @@ class ProgressTracker:
             if run_id in self._runs:
                 self._runs[run_id]["status"] = status
                 self._runs[run_id].update(kwargs)
+                if status in ("completed", "failed"):
+                    self._finished_order.append(run_id)
+                    self._prune_locked()
+
+    def _prune_locked(self) -> None:
+        """Remove oldest finished entries while staying under _MAX_FINISHED. Caller holds lock."""
+        while len(self._finished_order) > self._MAX_FINISHED:
+            old_id = self._finished_order.pop(0)
+            if old_id in self._runs and self._runs[old_id]["status"] in ("completed", "failed"):
+                del self._runs[old_id]
 
     def snapshot_engine(self, run_id: str, engine: Any) -> None:
         """Read live state from the synchronous engine and update progress."""

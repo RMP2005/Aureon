@@ -1,6 +1,7 @@
 """Tests for live simulation status tracking (Phase 9D)."""
 
 import time
+import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -193,3 +194,72 @@ async def test_background_run_error_leaks_no_internals() -> None:
         assert body["error"] is not None
         assert "Traceback" not in body["error"]
         assert "File " not in body["error"]
+
+
+# --- Phase 9E: ProgressTracker retention cleanup tests ---
+
+
+class TestProgressTrackerCleanup:
+    def test_finished_entries_pruned_beyond_max(self) -> None:
+        t = ProgressTracker()
+        limit = t._MAX_FINISHED
+        for i in range(limit + 5):
+            t.create(f"run_{i}", "Hybrid", 60.0)
+            t.set_status(f"run_{i}", "completed")
+        assert len([k for k in t._runs if t._runs[k]["status"] == "completed"]) <= limit
+        assert t.get(f"run_{limit + 4}") is not None
+        assert t.get("run_0") is None
+
+    def test_active_runs_never_pruned(self) -> None:
+        t = ProgressTracker()
+        limit = t._MAX_FINISHED
+        t.create("active_1", "Hybrid", 60.0)
+        t.set_status("active_1", "running")
+        for i in range(limit + 10):
+            t.create(f"done_{i}", "Nearest", 30.0)
+            t.set_status(f"done_{i}", "completed")
+        assert t.get("active_1") is not None
+        assert t.get("active_1")["status"] == "running"
+        assert t.is_running("active_1")
+
+    def test_queued_runs_never_pruned(self) -> None:
+        t = ProgressTracker()
+        limit = t._MAX_FINISHED
+        t.create("queued_1", "Hybrid", 60.0)
+        for i in range(limit + 10):
+            t.create(f"done_{i}", "Nearest", 30.0)
+            t.set_status(f"done_{i}", "failed")
+        assert t.get("queued_1") is not None
+        assert t.get("queued_1")["status"] == "queued"
+
+    def test_cleanup_is_bounded(self) -> None:
+        t = ProgressTracker()
+        limit = t._MAX_FINISHED
+        for _ in range(200):
+            rid = f"r_{uuid.uuid4().hex[:4]}"
+            t.create(rid, "Hybrid", 60.0)
+            t.set_status(rid, "completed")
+        active_count = sum(1 for v in t._runs.values() if v["status"] in ("completed", "failed"))
+        assert active_count <= limit
+
+    def test_persisted_result_survives_progress_cleanup(self) -> None:
+        svc = get_simulation_service()
+        result = svc.run_simulation(
+            strategy_name="aureon", duration_minutes=5.0,
+            incident_rate_per_hour=3.0, seed=200,
+        )
+        run_id = result["run_id"]
+        t = svc._tracker
+        t.create(run_id, result["strategy"], 300.0)
+        t.set_status(run_id, "completed", progress_percent=100.0)
+        fresh_limit = t._MAX_FINISHED
+        for i in range(fresh_limit + 5):
+            extra_id = f"prune_me_{i}"
+            t.create(extra_id, "Nearest", 60.0)
+            t.set_status(extra_id, "completed")
+        from src.services.run_store import RunStore
+        store = RunStore()
+        persisted = store.get_run(run_id)
+        assert persisted is not None
+        assert persisted["run_id"] == run_id
+        assert "metrics" in persisted
