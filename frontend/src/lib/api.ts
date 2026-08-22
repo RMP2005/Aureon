@@ -50,6 +50,14 @@ export interface ComparisonResult {
   executed_at: string;
 }
 
+export interface RunSummary {
+  run_id: string;
+  type: string;
+  strategy: string;
+  status: string;
+  executed_at: string;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -95,10 +103,10 @@ export async function compareStrategies(params: {
   });
 }
 
-export async function listSimulationResults(): Promise<ApiResponse<Array<{
-  run_id: string;
-  type: string;
-  executed_at: string;
-}>>> {
-  return apiFetch('/simulation/results');
+export async function listSimulationResults(): Promise<ApiResponse<RunSummary[]>> {
+  return apiFetch<RunSummary[]>('/simulation/results');
+}
+
+export async function getRunById(runId: string): Promise<ApiResponse<SimulationRunResult>> {
+  return apiFetch<SimulationRunResult>(`/simulation/results/${runId}`);
 }

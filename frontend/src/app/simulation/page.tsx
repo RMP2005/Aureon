@@ -16,6 +16,7 @@ export default function SimulationPage() {
   const handleRun = async () => {
     setLoading(true);
     setError(null);
+    setResult(null);
     try {
       const res = await runSimulation({
         strategy,
@@ -30,6 +31,8 @@ export default function SimulationPage() {
       setLoading(false);
     }
   };
+
+  const metricEntries = result ? Object.entries(result.metrics) : [];
 
   return (
     <>
@@ -95,24 +98,44 @@ export default function SimulationPage() {
 
         {error && (
           <div className="glass-panel rounded-2xl p-6 mb-6 border border-red-500/20">
-            <p className="text-red-400">{error}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-2 w-2 rounded-full bg-red-400" />
+              <span className="text-sm font-medium text-red-400">Simulation Failed</span>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)]">{error}</p>
           </div>
         )}
 
         {result && (
           <div className="glass-panel rounded-2xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Results — {result.run_id}</h2>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-              Strategy: {result.strategy} | Seed: {result.parameters.seed}
-            </p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <h2 className="text-lg font-semibold">Results — {result.run_id}</h2>
+            </div>
+            <div className="flex flex-wrap gap-3 mb-4 text-sm text-[var(--color-text-secondary)]">
+              <span>Strategy: <strong>{result.strategy}</strong></span>
+              <span>Duration: <strong>{result.parameters.duration_minutes}</strong> min</span>
+              <span>Rate: <strong>{result.parameters.incident_rate_per_hour}</strong>/hr</span>
+              <span>Seed: <strong>{result.parameters.seed}</strong></span>
+              {result.executed_at && (
+                <span>Run at: <strong>{new Date(result.executed_at).toLocaleString()}</strong></span>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(result.metrics).slice(0, 8).map(([key, value]) => (
+              {metricEntries.map(([key, value]) => (
                 <div key={key} className="glass-panel rounded-xl p-4 text-center">
-                  <p className="text-xl font-semibold">{typeof value === 'number' ? value.toFixed(1) : String(value)}</p>
-                  <p className="text-xs text-[var(--color-text-muted)] uppercase">{key.replace(/_/g, ' ')}</p>
+                  <p className="text-xl font-semibold">
+                    {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-muted)] uppercase">
+                    {key.replace(/_/g, ' ')}
+                  </p>
                 </div>
               ))}
             </div>
+            {metricEntries.length === 0 && (
+              <p className="text-sm text-[var(--color-text-muted)]">No metrics returned.</p>
+            )}
           </div>
         )}
       </main>

@@ -14,6 +14,7 @@ frontend/node_modules/
 # Build output
 .next/
 frontend/.next/
+*.tsbuildinfo
 
 # macOS
 .DS_Store
