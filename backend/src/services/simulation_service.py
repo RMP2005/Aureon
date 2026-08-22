@@ -23,6 +23,8 @@ for p in (str(WORKSPACE_ROOT), str(SIMULATION_PATH)):
 try:
     from simulation.src.dispatch.aureon_intelligence import AureonDecisionEngine
     from simulation.src.dispatch.baseline import NearestAvailableStrategy
+    from simulation.src.dispatch.hybrid_intelligence import HybridAureonStrategy
+    from simulation.src.dispatch.adaptive_policy import AdaptiveAureonStrategy
     from simulation.src.engine.city_engine import CitySimulationEngine
     from simulation.src.evaluation.evaluator import SimulationEvaluator
     from simulation.src.generators.incident_generator import ScenarioGenerator
@@ -32,6 +34,8 @@ try:
 except ImportError:
     from src.dispatch.aureon_intelligence import AureonDecisionEngine  # type: ignore
     from src.dispatch.baseline import NearestAvailableStrategy  # type: ignore
+    from src.dispatch.hybrid_intelligence import HybridAureonStrategy  # type: ignore
+    from src.dispatch.adaptive_policy import AdaptiveAureonStrategy  # type: ignore
     from src.engine.city_engine import CitySimulationEngine  # type: ignore
     from src.evaluation.evaluator import SimulationEvaluator  # type: ignore
     from src.generators.incident_generator import ScenarioGenerator  # type: ignore
@@ -50,12 +54,12 @@ class SimulationService:
         self.hospitals = get_default_bangalore_hospitals()
         self.ambulances = create_default_bangalore_fleet()
 
-        # Active default simulation engine
+        # Active default simulation engine (uses validated hybrid strategy)
         self.active_engine = CitySimulationEngine(
             road_network=self.road_network,
             hospitals=self.hospitals,
             ambulances=self.ambulances,
-            strategy=AureonDecisionEngine(),
+            strategy=HybridAureonStrategy(),
         )
 
         # Store historical simulation run results (LRU eviction)
@@ -85,9 +89,13 @@ class SimulationService:
         run_id = f"sim_{uuid.uuid4().hex[:8]}"
 
         strategy = (
-            AureonDecisionEngine()
-            if strategy_name.lower() in ("aureon", "intelligent", "ai")
+            HybridAureonStrategy()
+            if strategy_name.lower() in ("aureon", "hybrid", "intelligent")
+            else AdaptiveAureonStrategy()
+            if strategy_name.lower() in ("adaptive",)
             else NearestAvailableStrategy()
+            if strategy_name.lower() in ("baseline", "nearest")
+            else HybridAureonStrategy()  # default fallback
         )
 
         fleet = create_default_bangalore_fleet()
