@@ -40,6 +40,27 @@ CREATE TABLE IF NOT EXISTS run_recordings (
 """
 
 
+def _prune_orphan_sidecars(path: Path) -> None:
+    """Remove WAL sidecars that cannot belong to *path*'s database.
+
+    SQLite in WAL mode fails with "disk I/O error" when the main database
+    file is missing but a stale ``-wal``/``-shm`` pair from an earlier
+    incarnation is present (e.g. a repo copied without the .db, or a
+    backup restored without its sidecars). Sidecars are meaningless
+    without their main file — deleting them lets SQLite start clean.
+    """
+    if path.exists():
+        return
+    for suffix in ("-wal", "-shm"):
+        sidecar = path.with_name(path.name + suffix)
+        if sidecar.exists():
+            try:
+                sidecar.unlink()
+                logger.info("Removed orphaned WAL sidecar %s", sidecar)
+            except OSError:
+                logger.warning("Could not remove stale sidecar %s", sidecar)
+
+
 def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
     """Get a synchronous SQLite connection.
 
@@ -48,6 +69,7 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
     check_same_thread=False allows use from asyncio.to_thread.
     """
     path = Path(db_path) if db_path else DEFAULT_DB_PATH
+    _prune_orphan_sidecars(path)
     conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
