@@ -37,6 +37,15 @@ class SimulationRunRequest(BaseModel):
     duration_minutes: float = Field(default=60.0, ge=5.0, le=120.0)
     incident_rate_per_hour: float = Field(default=12.0, ge=1.0, le=30.0)
     seed: int = Field(default=42)
+    wall_clock_factor: float | None = Field(
+        default=None,
+        ge=1.0,
+        le=600.0,
+        description=(
+            "Optional live-view pacing: advance N sim-seconds per wall second. "
+            "Omit for maximum-speed execution."
+        ),
+    )
 
 
 class SimulationCompareRequest(BaseModel):

@@ -26,6 +26,7 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
             duration_minutes=request.duration_minutes,
             incident_rate_per_hour=request.incident_rate_per_hour,
             seed=request.seed,
+            wall_clock_factor=request.wall_clock_factor,
         )
         return ResponseEnvelope(data=result)
     except Exception as e:

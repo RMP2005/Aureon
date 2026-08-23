@@ -269,6 +269,70 @@ async def test_live_state_endpoint_unknown_run_returns_404() -> None:
     assert res.status_code == 404
 
 
+# --- Phase 10B: wall-clock pacing keeps runs observable ---
+
+
+@pytest.mark.asyncio
+async def test_paced_run_stays_live_and_serves_snapshots() -> None:
+    """wall_clock_factor stretches a run over real time so the twin can poll it."""
+    svc = get_simulation_service()
+    info = svc.start_simulation_background(
+        strategy_name="baseline",
+        duration_minutes=10.0,
+        incident_rate_per_hour=6.0,
+        seed=5,
+        wall_clock_factor=60.0,
+    )
+    run_id = info["run_id"]
+
+    transport = ASGITransport(app=app)
+    snapshots: list[dict] = []
+    deadline = time.time() + 30
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        while time.time() < deadline and len(snapshots) < 2:
+            res = await client.get(f"/api/v1/simulation/{run_id}/state")
+            if res.status_code == 200:
+                data = res.json()["data"]
+                assert data["run_status"]["run_id"] == run_id
+                if not snapshots or data["tick"] > snapshots[-1]["tick"]:
+                    snapshots.append(data)
+            await asyncio.sleep(0.25)
+
+    # A 10-min scenario at 60× spans ≥10 wall seconds — two distinct ticks
+    # must be observable through the endpoint.
+    assert len(snapshots) >= 2, "paced run finished before two snapshots"
+    assert snapshots[1]["sim_time_sec"] > snapshots[0]["sim_time_sec"]
+
+    # Wait for completion; engine must then be deregistered (404).
+    prog = svc._tracker.get(run_id)
+    while time.time() < deadline + 60:
+        prog = svc._tracker.get(run_id)
+        if prog and prog["status"] in ("completed", "failed"):
+            break
+        await asyncio.sleep(0.5)
+    assert prog["status"] == "completed"
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        gone = await client.get(f"/api/v1/simulation/{run_id}/state")
+    assert gone.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_unpaced_run_rejects_invalid_wall_clock_factor() -> None:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.post(
+            "/api/v1/simulation/run",
+            json={
+                "strategy": "baseline",
+                "duration_minutes": 5.0,
+                "incident_rate_per_hour": 3.0,
+                "seed": 1,
+                "wall_clock_factor": 0.5,
+            },
+        )
+    assert res.status_code == 422
+
+
 # --- Phase 9E: ProgressTracker retention cleanup tests ---
 
 

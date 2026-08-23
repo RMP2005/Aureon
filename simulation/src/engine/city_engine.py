@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -374,12 +375,23 @@ class CitySimulationEngine:
         self,
         schedule: list[tuple[float, Incident]],
         duration_minutes: float = 60.0,
+        *,
+        wall_clock_factor: float | None = None,
     ) -> SimulationMetrics:
-        """Execute a full scenario from a pre-defined schedule."""
+        """Execute a full scenario from a pre-defined schedule.
+
+        Args:
+            wall_clock_factor: Optional pacing control. When set, the engine
+                sleeps between ticks to advance exactly N sim-seconds per
+                wall-clock second (e.g. 60.0 → a 120-min scenario plays over
+                2 real minutes). None (default) runs as fast as compute
+                allows — benchmarks are unaffected.
+        """
         self.reset()
         total_seconds = duration_minutes * 60.0
         schedule_queue = list(schedule)
         all_reported: list[Incident] = [inc for _, inc in schedule]
+        tick_delay = self.dt / wall_clock_factor if wall_clock_factor else 0.0
 
         while self.sim_time_seconds < total_seconds:
             due_incidents: list[Incident] = []
@@ -388,6 +400,8 @@ class CitySimulationEngine:
                 due_incidents.append(inc)
 
             self.step(new_incidents=due_incidents)
+            if tick_delay > 0:
+                time.sleep(tick_delay)
 
         return self.calculate_metrics(all_reported_incidents=all_reported)
 

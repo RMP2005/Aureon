@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import MetricsPanel from '@/components/MetricsPanel';
 import {
@@ -24,8 +25,10 @@ export default function SimulationPage() {
   const [result, setResult] = useState<SimulationRunResult | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
-  const handleCompleted = useCallback((runId: string) => {
-    getRunById(runId)
+  const [runId, setRunId] = useState<string | null>(null);
+
+  const handleCompleted = useCallback((id: string) => {
+    getRunById(id)
       .then((res) => setResult(res.data))
       .catch(() => setResult(null));
   }, []);
@@ -46,13 +49,17 @@ export default function SimulationPage() {
   const handleRun = async () => {
     setLaunchError(null);
     setResult(null);
+    setRunId(null);
     try {
       const res = await runSimulation({
         strategy,
         duration_minutes: duration,
         incident_rate_per_hour: rate,
         seed,
+        // Stretch the run over wall time so the live twin has a window.
+        wall_clock_factor: 60,
       });
+      setRunId(res.data.run_id);
       startPolling(res.data.run_id);
     } catch (e: unknown) {
       setLaunchError(e instanceof Error ? e.message : 'Unknown error');
@@ -122,6 +129,14 @@ export default function SimulationPage() {
           </button>
           {launchError && (
             <p className="mt-3 text-sm text-crit-red">{launchError}</p>
+          )}
+          {isRunning && runId && (
+            <Link
+              href={`/twin?run=${runId}`}
+              className="ml-4 inline-block px-5 py-2 rounded-lg border border-teal-core/40 text-sm font-medium text-teal-core hover:bg-teal-core/10 transition-colors"
+            >
+              Open Live Twin →
+            </Link>
           )}
         </div>
 

@@ -108,6 +108,7 @@ export interface RunLiveState {
   active_incidents: TwinIncident[];
   completed_incidents_count: number;
   pending_queue_count: number;
+  /** Enriched by the service layer from ProgressTracker when available. */
   run_status?: RunProgress;
 }
 
@@ -201,6 +202,8 @@ export async function runSimulation(params: {
   duration_minutes?: number;
   incident_rate_per_hour?: number;
   seed?: number;
+  /** Live-view pacing: N sim-seconds per wall-second (e.g. 60). Omit for max speed. */
+  wall_clock_factor?: number;
 }): Promise<ApiResponse<SimulationRunResult>> {
   return apiFetch<SimulationRunResult>('/simulation/run', {
     method: 'POST',

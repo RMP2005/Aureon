@@ -241,6 +241,7 @@ class SimulationService:
         duration_minutes: float = 60.0,
         incident_rate_per_hour: float = 12.0,
         seed: int = 42,
+        wall_clock_factor: float | None = None,
     ) -> dict[str, Any]:
         """Start a simulation in a background thread and return run_id immediately."""
         run_id, engine, schedule, strategy, params = self._create_run(
@@ -254,6 +255,7 @@ class SimulationService:
         thread = threading.Thread(
             target=self._run_background,
             args=(run_id, engine, schedule, strategy, params),
+            kwargs={"wall_clock_factor": wall_clock_factor},
             daemon=True,
         )
         thread.start()
@@ -266,6 +268,7 @@ class SimulationService:
         schedule: list[tuple[float, Any]],
         strategy: Any,
         params: dict[str, Any],
+        wall_clock_factor: float | None = None,
     ) -> None:
         """Execute simulation in background thread with progress monitoring."""
         duration_seconds = params["duration_minutes"] * 60.0
@@ -281,6 +284,7 @@ class SimulationService:
             mon.start()
             metrics = engine.run_scenario(
                 schedule=schedule, duration_minutes=params["duration_minutes"],
+                wall_clock_factor=wall_clock_factor,
             )
 
             result_data = {
