@@ -67,6 +67,11 @@ export function getLiveBuffer(): LiveBuffer {
 /**
  * Ingest a fresh engine snapshot. Existing entities ease toward their new
  * targets; new entities spawn at target; vanished entities are removed.
+ *
+ * REPLAY CONTRACT: this function is the single ingestion point for twin
+ * state. Scenario replay (Phase 10D+ Demo Mode) is a snapshot stream fed
+ * through this same entry — the render loop neither knows nor cares
+ * whether frames originate from a live engine or a recording.
  */
 export function ingestLiveState(state: RunLiveState): void {
   const seen = new Set<string>();

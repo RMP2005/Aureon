@@ -49,8 +49,9 @@ export function HospitalMarkers() {
       <octahedronGeometry args={[0.55]} />
       <meshStandardMaterial
         color={TITANIUM}
-        emissive={TITANIUM}
-        emissiveIntensity={0.35}
+        /* No idle emissive — hospital glow becomes occupancy-state driven
+           when bed telemetry reaches the scene (Phase 10D). Glow = state. */
+        emissiveIntensity={0}
         roughness={0.35}
         metalness={0.6}
       />
