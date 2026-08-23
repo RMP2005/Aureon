@@ -131,41 +131,30 @@ body {
     0 0 60px rgba(255, 54, 85, 0.05);
 }
 
-.text-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-teal-core),
-    var(--color-violet-intel)
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
 
 /* ============================================================
    SEMANTIC TEXT HIGHLIGHTS (Phase 11-refinement)
-   Keyword-level ink gradients. Never decorative: each class is
-   reserved for one class of meaning.
-   .hl-reason   → AI reasoning / prediction / decisions
-   .hl-evidence → measured / audited / validated facts
-   .hl-crit     → incidents / emergency / danger (sparing)
+   Keyword-level ink gradients ONLY — never whole sentences,
+   never decorative. Each class is reserved for one meaning:
+   .hl-reason → AI reasoning / decisions vocabulary
+   .hl-crit   → danger / emergency vocabulary
+   Direction: semantic color → white (subtle).
    ============================================================ */
 .hl {
-  --hl-from: var(--color-ink-primary);
-  --hl-to: var(--color-teal-core);
-  background: linear-gradient(100deg, var(--hl-from) 20%, var(--hl-to));
+  background: linear-gradient(
+    100deg,
+    var(--hl-color) 15%,
+    var(--color-ink-primary) 85%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .hl-reason {
-  --hl-to: var(--color-violet-intel);
-}
-.hl-evidence {
-  --hl-to: var(--color-titanium);
+  --hl-color: var(--color-violet-intel);
 }
 .hl-crit {
-  --hl-to: var(--color-crit-red);
+  --hl-color: var(--color-crit-red);
 }
 
 ::-webkit-scrollbar {

@@ -99,8 +99,9 @@ function JourneyLanding() {
         <div className="pointer-events-none absolute left-6 top-6 z-20 flex select-none items-center gap-2.5">
           <AureonMark size={22} />
           <p className="font-display text-lg font-semibold tracking-tight">
-            Aureon <span className="text-teal-core">/</span>
-            <span className="hud-label ml-2 align-middle text-[var(--color-text-muted)]">
+            Aureon
+            <span className="mx-2.5 text-teal-core">/</span>
+            <span className="hud-label align-middle text-[var(--color-text-muted)]">
               Urban Intelligence OS
             </span>
           </p>
@@ -159,7 +160,7 @@ function Splash() {
       className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
     >
       <h1 className="font-display text-[clamp(2.6rem,8.5vw,6.5rem)] font-bold tracking-tight text-center leading-none break-words max-w-full px-4">
-        Aureon<span className="text-gradient">.</span>
+        Aureon<span className="text-teal-core">.</span>
       </h1>
     </div>
   );
@@ -183,7 +184,7 @@ function StaticLanding() {
         </div>
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6">
           <p className="font-display text-[clamp(2.2rem,6.5vw,4.5rem)] font-bold tracking-tight break-words">
-            Aureon<span className="text-gradient">.</span>
+            Aureon<span className="text-teal-core">.</span>
           </p>
           <p className="mt-4 max-w-xl text-[var(--color-text-secondary)]">
             The urban intelligence operating system. A living digital twin of

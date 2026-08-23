@@ -19,7 +19,6 @@ import { useReplayStore } from '@/lib/twin/replay';
 import { useSessionStore } from '@/lib/twin/store';
 import { requestIntroSweep } from '@/lib/twin/intro';
 import BootOverlay from '@/components/command/BootOverlay';
-import Hl from '@/components/brand/Hl';
 import { launchDemo } from '@/lib/api';
 
 /**
@@ -233,10 +232,9 @@ function CenterInstrument({
         <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit max-w-xl rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
           <p className="hud-stamp text-[var(--color-text-secondary)]">NO ACTIVE RUN</p>
           <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-text-muted)]">
-            Launch a curated showcase — a city{' '}
-            <Hl kind="crit">crisis</Hl> unfolds live while Aureon{' '}
-            <Hl kind="reason">decides</Hl> autonomously. Every decision is
-            logged with explainable <Hl kind="evidence">evidence</Hl>.
+            Launch a curated showcase — a city crisis unfolds live while
+            Aureon decides autonomously. Every decision is logged with
+            explainable evidence.
           </p>
           <div className="mt-2 flex items-center justify-center gap-2">
             <button

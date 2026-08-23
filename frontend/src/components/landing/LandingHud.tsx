@@ -40,7 +40,7 @@ export default function LandingHud() {
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute bottom-7 left-6 z-10 hidden sm:block"
+      className="pointer-events-none absolute right-6 top-24 z-10 hidden sm:block"
       style={{ opacity: 0 }}
     >
       <p className="hud-stamp !text-[9px] leading-relaxed text-teal-core">
@@ -50,15 +50,18 @@ export default function LandingHud() {
         <p>
           BENGALURU&nbsp;&nbsp;{lat} {lng}
         </p>
-        <div className="h-px w-40 bg-hairline-strong" />
-        <p>
-          ROAD NETWORK<span className="float-right tnum ml-6">{segments} SEG</span>
+        <div className="h-px w-44 bg-hairline-strong" />
+        <p className="flex justify-between gap-6">
+          <span>ROAD NETWORK</span>
+          <span className="tnum">{segments} SEG</span>
         </p>
-        <p>
-          MEDICAL NODES<span className="float-right tnum ml-6">{hospitals}</span>
+        <p className="flex justify-between gap-6">
+          <span>MEDICAL NODES</span>
+          <span className="tnum">{hospitals}</span>
         </p>
-        <p>
-          RESPONSE BASES<span className="float-right tnum ml-6">{stations}</span>
+        <p className="flex justify-between gap-6">
+          <span>RESPONSE BASES</span>
+          <span className="tnum">{stations}</span>
         </p>
       </div>
     </div>

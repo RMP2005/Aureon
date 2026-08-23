@@ -41,6 +41,16 @@ export default function Navbar() {
       : 'online';
   const style = CONNECTION_STYLES[state];
 
+  // Defensive envelope read: the health payload may be null, the inner
+  // data object absent, or version missing on older backends. The label
+  // degrades to plain connection state instead of crashing.
+  const version = (() => {
+    if (state !== 'online') return null;
+    const d = healthQuery.data as { data?: { version?: unknown } } | undefined;
+    const v = d?.data?.version;
+    return typeof v === 'string' && v.length > 0 ? v : null;
+  })();
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -74,7 +84,7 @@ export default function Navbar() {
         >
           <div className={`h-2 w-2 rounded-full ${style.dot}`} />
           <span className={`hud-label !tracking-[0.04em] ${style.text}`}>
-            {state === 'online' && healthQuery.data ? `v${healthQuery.data.data.version}` : style.label}
+            {version ? `v${version}` : style.label}
           </span>
         </div>
       </nav>

@@ -19,7 +19,12 @@ const TIER_STYLE: Record<RoadTier, { opacity: number; tint: number }> = {
 
 function TierLines({ tier }: { tier: RoadTier }) {
   const geometry = useMemo(() => {
-    const buffer = getRoadBuffer(tier);
+    let buffer = getRoadBuffer(tier);
+    // Final defense: verify every vertex is finite before the attribute
+    // reaches Three.js. A single NaN poisons computeBoundingSphere.
+    if (buffer && !Array.from(buffer).every(Number.isFinite)) {
+      buffer = null;
+    }
     // Empty network data → no geometry at all. Mounting a zero-vertex
     // position attribute makes Three.js compute a NaN bounding sphere.
     if (!buffer) return null;

@@ -4,7 +4,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { getRoadBuffer } from '@/lib/twin/city-data';
-import { project } from '@/lib/twin/projection';
+import { safeProject } from '@/lib/twin/projection';
 import { getLandingProgress } from '@/lib/landing/progress';
 import CITY_DATA from '@/data/bangalore-city.json';
 
@@ -67,7 +67,7 @@ export default function LandingScene() {
       <LightRig />
       <MaterializingCity />
       <RisingInfrastructure />
-      <AwakeningFleet />
+      <NetworkActivity />
       <EpilogueTopology />
       <CinematicCamera />
     </>
@@ -270,9 +270,13 @@ function applyMatricesOnMount(
   }, [mats, ref]);
 }
 
-// --- The fleet awakens ---------------------------------------------------
+// --- Network activity ----------------------------------------------------
+// Replaces the old placeholder capsules ("teal blobs") with data-driven
+// system pulses: stride-sampled midpoints of REAL arterial segments, each
+// breathing as a low ring on the ground plane — a living twin, not decor.
+// No particles, no glow layers; brightness carries the activity.
 
-const FLEET_COUNT = 22;
+const PULSE_COUNT = 22;
 
 // --- Static data (non-interactive film props) ----------------------------
 
@@ -280,7 +284,7 @@ const CITY_SEG = CITY_DATA.segments as unknown as [number, number, number, numbe
 const CITY_SEG_COUNT = CITY_SEG.length;
 
 function toWorld(lng: number, lat: number) {
-  const [x, z] = project(lng, lat);
+  const [x, z] = safeProject(lng, lat);
   return { x, z };
 }
 
@@ -295,13 +299,15 @@ const STATION_LANDING = CITY_DATA.stations.map((s) => ({
 }));
 
 /** Deterministic scatter: stride-sampled arterial midpoints across the grid. */
-const FLEET_SPOTS = (() => {
+const PULSE_SPOTS = (() => {
   const spots: { x: number; z: number; phase: number; appearAt: number }[] = [];
-  for (let i = 0; spots.length < FLEET_COUNT && i < 40000; i++) {
+  for (let i = 0; spots.length < PULSE_COUNT && i < 40000; i++) {
     const idx = (i * 697 + 1301) % Math.max(1, CITY_SEG_COUNT);
     const seg = CITY_SEG[idx];
     if (!seg) continue;
-    const [x, z] = project((seg[0] + seg[2]) / 2, (seg[1] + seg[3]) / 2);
+    if (![seg[0], seg[1], seg[2], seg[3]].every(Number.isFinite)) continue;
+    const [x, z] = safeProject((seg[0] + seg[2]) / 2, (seg[1] + seg[3]) / 2);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
     const n = spots.length;
     spots.push({
       x,
@@ -315,55 +321,68 @@ const FLEET_SPOTS = (() => {
   return spots;
 })();
 
-function AwakeningFleet() {
+function NetworkActivity() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const workMatrix = useRef(new THREE.Matrix4());
-  const workQuat = useRef(new THREE.Quaternion());
+  const workQuat = useRef(
+    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2),
+  );
   const workPos = useRef(new THREE.Vector3());
   const workScaleV = useRef(new THREE.Vector3());
-  const UP = useRef(new THREE.Vector3(0, 1, 0));
+  const workColor = useRef(new THREE.Color());
 
-    useFrame(({ clock }) => {
-      const mesh = meshRef.current;
-      if (!mesh) return;
-      const p = getLandingProgress();
-      const t = clock.elapsedTime;
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    // Park every instance hidden until the activity window opens.
+    workPos.current.set(0, -10, 0);
+    workScaleV.current.setScalar(0.0001);
+    for (let i = 0; i < PULSE_SPOTS.length; i++) {
+      workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
+      mesh.setMatrixAt(i, workMatrix.current);
+      mesh.setColorAt(i, new THREE.Color('#16F2D4'));
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, []);
 
-      // Epilogue handoff (Phase 11-refinement): the watch-fleet capsules
-      // dissolve as the district-topology structure rises — no generic
-      // glowing blobs lingering over the final frame.
-      const out = 1 - window01(p, [0.86, 0.93]);
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const p = getLandingProgress();
+    const t = clock.elapsedTime;
 
-      for (let i = 0; i < FLEET_SPOTS.length; i++) {
-        const u = FLEET_SPOTS[i];
-        const k =
-          p >= u.appearAt ? easeOutCubic((p - u.appearAt) / 0.08) : 0;
-        const bob = k === 1 ? Math.sin(t * 1.3 + u.phase) * 0.07 : 0;
-        workScaleV.current.setScalar(Math.max(0.0001, k * out));
-        workPos.current.set(u.x, 0.45 + bob, u.z);
-        workQuat.current.setFromAxisAngle(UP.current, Math.sin(u.phase) * Math.PI);
-        workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
-        mesh.setMatrixAt(i, workMatrix.current);
-      }
-      mesh.instanceMatrix.needsUpdate = true;
-    });
+    // Epilogue handoff: pulses settle as the topology structure rises.
+    const out = 1 - window01(p, [0.86, 0.93]);
+
+    for (let i = 0; i < PULSE_SPOTS.length; i++) {
+      const u = PULSE_SPOTS[i];
+      const on = p >= u.appearAt ? 1 : 0;
+      // Gentle sonar-like breath, phase-offset per node.
+      const pulse = 0.5 + 0.5 * Math.sin(t * 1.4 + u.phase);
+      const s = (0.55 + pulse * 0.75) * on * Math.max(0.0001, out);
+      workScaleV.current.setScalar(s);
+      workPos.current.set(u.x, 0.12, u.z);
+      workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
+      mesh.setMatrixAt(i, workMatrix.current);
+      // Brightness carries the beat — no glow layers.
+      const b = 0.22 + 0.5 * pulse * on * out;
+      workColor.current.setScalar(b);
+      mesh.setColorAt(i, workColor.current);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  });
 
   return (
     <instancedMesh
       ref={meshRef}
-      args={[undefined, undefined, FLEET_COUNT]}
+      args={[undefined, undefined, PULSE_COUNT]}
       frustumCulled={false}
     >
-      <capsuleGeometry args={[0.28, 0.55, 4, 10]} />
-      {/* Fleet glow is state: units are "on watch" in this film */}
-      <meshStandardMaterial
-        color="#16F2D4"
-        roughness={0.3}
-        metalness={0.15}
-        emissive="#16F2D4"
-        emissiveIntensity={0.25}
-      />
+      <ringGeometry args={[0.72, 0.88, 32]} />
+      <meshBasicMaterial color="#ffffff" toneMapped={false} transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} />
     </instancedMesh>
   );
 }

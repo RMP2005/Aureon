@@ -1,23 +1,21 @@
 import type { ReactNode } from 'react';
 
 /**
- * Semantic keyword highlight (Phase 11-refinement).
+ * Semantic keyword highlight (refinement pass).
  *
  * Usage is contract-bound — the tone must match the meaning:
- *   reason   → AI reasoning, prediction, decisions, intelligence
- *   evidence → measured / audited / validated facts
- *   crit     → incidents, emergency response, danger (sparing!)
+ *   reason → AI reasoning / decisions vocabulary (violet)
+ *   crit   → danger / emergency vocabulary (red)
  *
- * These are ink gradients on words only. No decorative gradients.
+ * Exact words only, never sentences. Direction: color → white.
  */
 export default function Hl({
   kind,
   children,
 }: {
-  kind: 'reason' | 'evidence' | 'crit';
+  kind: 'reason' | 'crit';
   children: ReactNode;
 }) {
-  const cls =
-    kind === 'reason' ? 'hl-reason' : kind === 'evidence' ? 'hl-evidence' : 'hl-crit';
+  const cls = kind === 'reason' ? 'hl-reason' : 'hl-crit';
   return <span className={`hl ${cls}`}>{children}</span>;
 }
