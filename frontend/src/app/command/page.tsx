@@ -73,6 +73,7 @@ function CommandInner() {
         status={feed.status}
         progress={feed.progress}
         lastSuccessAt={feed.lastSuccessAt}
+        scenarioName={feed.result?.scenario?.name ?? null}
         replay={
           inReplay
             ? {
@@ -110,7 +111,11 @@ function CommandInner() {
       </div>
 
       <footer className="h-16 shrink-0 border-t border-hairline bg-panel-1">
-        <MetricsStrip progress={feed.progress} result={feed.result} />
+        <MetricsStrip
+          progress={feed.progress}
+          result={feed.result}
+          liveModeStats={panelState?.mode_stats ?? null}
+        />
       </footer>
     </main>
   );

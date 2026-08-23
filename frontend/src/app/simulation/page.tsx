@@ -2,11 +2,14 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import MetricsPanel from '@/components/MetricsPanel';
 import {
   runSimulation,
   getRunById,
+  listScenarios,
+  type ScenarioInfo,
   type SimulationRunResult,
 } from '@/lib/api';
 import { useRunPolling } from '@/hooks/useRunPolling';
@@ -22,10 +25,19 @@ export default function SimulationPage() {
   const [duration, setDuration] = useState(30);
   const [rate, setRate] = useState(12);
   const [seed, setSeed] = useState(42);
+  const [scenario, setScenario] = useState('normal_operations');
   const [result, setResult] = useState<SimulationRunResult | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
   const [runId, setRunId] = useState<string | null>(null);
+
+  // Scenario Library registry — server-owned; the UI never hardcodes presets.
+  const scenariosQuery = useQuery({
+    queryKey: ['scenarios'],
+    queryFn: listScenarios,
+    staleTime: 5 * 60_000,
+  });
+  const scenarios: ScenarioInfo[] = scenariosQuery.data?.data ?? [];
 
   const handleCompleted = useCallback((id: string) => {
     getRunById(id)
@@ -56,6 +68,7 @@ export default function SimulationPage() {
         duration_minutes: duration,
         incident_rate_per_hour: rate,
         seed,
+        scenario,
         // Stretch the run over wall time so the live twin has a window.
         wall_clock_factor: 60,
       });
@@ -123,6 +136,58 @@ export default function SimulationPage() {
               />
             </div>
           </div>
+
+          {/* Scenario Library — world-state presets, server-owned registry */}
+          <div className="mb-4">
+            <label className="hud-label block text-[var(--color-text-muted)] mb-2">
+              Scenario
+            </label>
+            {scenariosQuery.isLoading ? (
+              <p className="hud-stamp text-[var(--color-text-muted)]">
+                LOADING SCENARIOS…
+              </p>
+            ) : scenarios.length === 0 ? (
+              <p className="hud-stamp text-[var(--color-text-muted)]">
+                SCENARIO REGISTRY UNAVAILABLE — DEFAULTS APPLY
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {scenarios.map((s) => {
+                  const selected = scenario === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => setScenario(s.key)}
+                      className={`rounded-xl border p-3 text-left transition-all duration-200 ${
+                        selected
+                          ? 'border-teal-core bg-teal-core/10'
+                          : 'border-white/10 bg-white/5 hover:border-white/25'
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <span className={`text-sm font-semibold ${selected ? 'text-teal-core' : ''}`}>
+                          {s.name}
+                        </span>
+                        {selected && (
+                          <span className="hud-stamp !text-[8px] text-teal-core">ACTIVE</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--color-text-secondary)] leading-snug mb-1.5">
+                        {s.tagline}
+                      </p>
+                      <p className="text-[11px] text-[var(--color-text-muted)] leading-snug mb-2 line-clamp-3">
+                        {s.description}
+                      </p>
+                      <span className="hud-stamp !text-[8px] rounded-sm bg-violet-intel/15 px-1.5 py-0.5 text-violet-intel">
+                        STRESS · {s.stress_vector.toUpperCase()}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleRun}
             disabled={isRunning}

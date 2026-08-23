@@ -10,15 +10,33 @@ import type { SimulationRunResult, RunProgress } from '@/lib/api';
 export default function MetricsStrip({
   progress,
   result,
+  liveModeStats,
 }: {
   progress: RunProgress | null;
   result: SimulationRunResult | null;
+  /** Adaptive-policy telemetry from the live engine snapshot (10E-2). */
+  liveModeStats?: Record<string, number> | null;
 }) {
   if (result) {
     const m = result.metrics;
+    const modeStats = result.adaptive_mode_stats;
+    const topMode = modeStats
+      ? (Object.entries(modeStats).sort((a, b) => b[1] - a[1])[0] ?? null)
+      : null;
+    const totalDispatches = modeStats
+      ? Object.values(modeStats).reduce((sum, n) => sum + n, 0)
+      : 0;
     return (
       <div className="flex h-full items-stretch divide-x divide-[color:var(--color-hairline)] overflow-x-auto">
         <StripCell label="STRATEGY" value={result.strategy.replace(/\s*\(.*\)/, '')} />
+        {topMode && topMode[1] > 0 && (
+          <StripCell
+            label="DOMINANT MODE"
+            value={`${topMode[0].replace(/_/g, ' ').toUpperCase()} ${Math.round((topMode[1] / totalDispatches) * 100)}%`}
+            accent="violet"
+          />
+        )}
+        {result.scenario && <StripCell label="SCENARIO" value={result.scenario.name} />}
         <StripCell label="MEAN RT" value={`${m.response_times_minutes.mean.toFixed(1)} min`} />
         <StripCell label="P90 RT" value={`${m.response_times_minutes.p90.toFixed(1)} min`} />
         <StripCell
@@ -39,9 +57,22 @@ export default function MetricsStrip({
   }
 
   if (progress) {
+    const topMode = liveModeStats
+      ? (Object.entries(liveModeStats).sort((a, b) => b[1] - a[1])[0] ?? null)
+      : null;
+    const totalDispatches = liveModeStats
+      ? Object.values(liveModeStats).reduce((sum, n) => sum + n, 0)
+      : 0;
     return (
       <div className="flex h-full items-stretch divide-x divide-[color:var(--color-hairline)] overflow-x-auto">
         <StripCell label="STATUS" value={progress.status.toUpperCase()} accent={progress.status === 'running' ? 'teal' : undefined} />
+        {topMode && topMode[1] > 0 && (
+          <StripCell
+            label="DOMINANT MODE"
+            value={`${topMode[0].replace(/_/g, ' ').toUpperCase()} ${Math.round((topMode[1] / totalDispatches) * 100)}%`}
+            accent="violet"
+          />
+        )}
         <StripCell label="PROGRESS" value={`${progress.progress_percent.toFixed(0)}%`} />
         <StripCell label="INCIDENTS REPORTED" value={String(progress.reported_incidents)} />
         <StripCell label="RESOLVED" value={String(progress.completed_incidents)} />
@@ -67,7 +98,7 @@ function StripCell({
 }: {
   label: string;
   value: string;
-  accent?: 'teal' | 'amber' | 'crit';
+  accent?: 'teal' | 'amber' | 'crit' | 'violet';
 }) {
   const tone =
     accent === 'teal'
@@ -76,7 +107,9 @@ function StripCell({
         ? 'text-amber-warn'
         : accent === 'crit'
           ? 'text-crit-red'
-          : '';
+          : accent === 'violet'
+            ? 'text-violet-intel'
+            : '';
   return (
     <div className="flex min-w-[110px] flex-col justify-center px-4 py-2 leading-tight">
       <p className="hud-stamp !text-[9px] whitespace-nowrap text-[var(--color-text-muted)]">

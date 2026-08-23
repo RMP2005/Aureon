@@ -132,8 +132,16 @@ class DynamicTrafficModel:
     to create realistic rush-hour and off-peak conditions.
     """
 
-    def __init__(self, road_network: RoadNetwork) -> None:
+    def __init__(
+        self,
+        road_network: RoadNetwork,
+        override_period: TimePeriod | None = None,
+    ) -> None:
         self.road_network = road_network
+        # Scenario Library (Phase 10E-2): when set, congestion is pinned to a
+        # single time period for the whole run (e.g. evening peak) instead of
+        # following the simulation clock.
+        self.override_period = override_period
         self._last_update_sec: float = -1.0
         self._current_period: TimePeriod | None = None
 
@@ -142,7 +150,7 @@ class DynamicTrafficModel:
 
         Only recalculates when the time period changes to avoid redundant work.
         """
-        new_period = get_time_period(sim_time_sec)
+        new_period = self.override_period or get_time_period(sim_time_sec)
         if new_period == self._current_period:
             return
 

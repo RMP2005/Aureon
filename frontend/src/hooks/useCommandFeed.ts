@@ -87,6 +87,8 @@ export function useCommandFeed(runId: string | null) {
             text: `${entry.callsign} → ${entry.incident_id} (${entry.category}) · ${entry.rationale}`,
             simSec: entry.sim_time_sec,
             source: 'DISPATCH_LOG',
+            // Structured decision evidence (Phase 10E-2).
+            details: entry.decision ?? null,
           })),
         );
       })

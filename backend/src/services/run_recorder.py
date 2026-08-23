@@ -49,7 +49,7 @@ class RunRecorder:
         sim_t = engine.sim_time_seconds
 
         # DISPATCH — verbatim from the engine's own dispatch log.
-        new_entries = engine.dispatch_log[self._dispatch_log_len:]
+        new_entries = engine.dispatch_log[self._dispatch_log_len :]
         for entry in new_entries:
             self._emit(
                 kind="DISPATCH",
@@ -61,6 +61,7 @@ class RunRecorder:
                 severity=entry.get("severity"),
                 entity_kind="ambulance",
                 entity_id=entry["ambulance_id"],
+                details=entry.get("decision"),
             )
         self._dispatch_log_len = len(engine.dispatch_log)
 
@@ -116,9 +117,9 @@ class RunRecorder:
                 )
 
         # FRAME — fixed sim-time sampling cadence.
-        needs_sample = (
-            sim_t - self._last_sample_sec
-        ) >= self.sample_interval_sec or (not self._frames and self.max_frames > 0)
+        needs_sample = (sim_t - self._last_sample_sec) >= self.sample_interval_sec or (
+            not self._frames and self.max_frames > 0
+        )
         if needs_sample and len(self._frames) < self.max_frames:
             self._frames.append(engine.get_current_state())
             self._last_sample_sec = sim_t
@@ -144,19 +145,23 @@ class RunRecorder:
         severity: str | None,
         entity_kind: str,
         entity_id: str,
+        details: dict[str, Any] | None = None,
     ) -> None:
         self._seq += 1
-        self._events.append(
-            {
-                "id": f"evt_{self._seq:05d}",
-                "kind": kind,
-                "sim_time_sec": round(sim_time_sec, 1),
-                "text": text,
-                "severity": severity,
-                "entity_kind": entity_kind,
-                "entity_id": entity_id,
-            }
-        )
+        event: dict[str, Any] = {
+            "id": f"evt_{self._seq:05d}",
+            "kind": kind,
+            "sim_time_sec": round(sim_time_sec, 1),
+            "text": text,
+            "severity": severity,
+            "entity_kind": entity_kind,
+            "entity_id": entity_id,
+        }
+        if details:
+            # Structured decision evidence (Phase 10E-2) — candidate scoring
+            # and override reasons ride along with DISPATCH journal entries.
+            event["details"] = details
+        self._events.append(event)
 
     def to_recording(
         self,

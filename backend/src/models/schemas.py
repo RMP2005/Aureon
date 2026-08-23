@@ -6,7 +6,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # --- Base ---
 
 class ResponseEnvelope(BaseModel):
@@ -37,6 +36,10 @@ class SimulationRunRequest(BaseModel):
     duration_minutes: float = Field(default=60.0, ge=5.0, le=120.0)
     incident_rate_per_hour: float = Field(default=12.0, ge=1.0, le=30.0)
     seed: int = Field(default=42)
+    scenario: str = Field(
+        default="normal_operations",
+        description="Scenario Library key applied as world-state modifiers.",
+    )
     wall_clock_factor: float | None = Field(
         default=None,
         ge=1.0,

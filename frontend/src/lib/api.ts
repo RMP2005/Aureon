@@ -37,7 +37,12 @@ export interface SimulationRunResult {
     duration_minutes: number;
     incident_rate_per_hour: number;
     seed: number;
+    scenario?: string;
   };
+  /** Scenario Library identity persisted with the run (Phase 10E-2). */
+  scenario?: { key: string; name: string };
+  /** Adaptive-policy mode distribution — real per-dispatch regime counts. */
+  adaptive_mode_stats?: Record<string, number>;
   metrics: SimulationMetrics;
   dispatch_log_sample?: DispatchLogEntry[];
   executed_at: string;
@@ -81,6 +86,26 @@ export interface OperationsStats {
   avg_missions_per_ambulance: number;
 }
 
+/**
+ * Structured decision evidence emitted by strategies (Phase 10E-2).
+ * Keys vary by strategy — the nearest-ETA hybrid publishes candidate
+ * scoring; the adaptive policy adds its detected mode and any override
+ * reasons. Renderers must treat every field as optional.
+ */
+export interface DispatchDecisionDetails {
+  mode?: string;
+  override_reason?: string;
+  coverage_score?: number;
+  candidates?: Array<{
+    ambulance_id: string;
+    callsign?: string;
+    eta_sec?: number;
+    capability_match?: boolean;
+    selected?: boolean;
+  }>;
+  [key: string]: unknown;
+}
+
 export interface DispatchLogEntry {
   tick: number;
   sim_time_sec: number;
@@ -94,6 +119,7 @@ export interface DispatchLogEntry {
   scene_eta_sec: number;
   hospital_id: string | null;
   rationale: string;
+  decision?: DispatchDecisionDetails | null;
 }
 
 /** Live twin snapshot of a running simulation — GET /simulation/{run_id}/state */
@@ -103,6 +129,8 @@ export interface RunLiveState {
   sim_time_sec: number;
   sim_time_formatted: string;
   strategy: string;
+  /** Adaptive-policy telemetry — mode distribution when strategy classifies. */
+  mode_stats?: Record<string, number>;
   ambulances: TwinAmbulance[];
   hospitals: TwinHospitalState[];
   active_incidents: TwinIncident[];
@@ -198,6 +226,8 @@ export interface ReplayEvent {
   severity: string | null;
   entity_kind: 'ambulance' | 'incident' | 'hospital';
   entity_id: string;
+  /** Structured decision evidence on DISPATCH events (Phase 10E-2). */
+  details?: DispatchDecisionDetails | null;
 }
 
 /**
@@ -243,6 +273,8 @@ export async function runSimulation(params: {
   duration_minutes?: number;
   incident_rate_per_hour?: number;
   seed?: number;
+  /** Scenario Library key — world-state preset applied before execution. */
+  scenario?: string;
   /** Live-view pacing: N sim-seconds per wall-second (e.g. 60). Omit for max speed. */
   wall_clock_factor?: number;
 }): Promise<ApiResponse<SimulationRunResult>> {
@@ -250,6 +282,19 @@ export async function runSimulation(params: {
     method: 'POST',
     body: JSON.stringify(params),
   });
+}
+
+/** Scenario Library registry entry — GET /simulation/scenarios */
+export interface ScenarioInfo {
+  key: string;
+  name: string;
+  tagline: string;
+  description: string;
+  stress_vector: string;
+}
+
+export async function listScenarios(): Promise<ApiResponse<ScenarioInfo[]>> {
+  return apiFetch<ScenarioInfo[]>('/simulation/scenarios');
 }
 
 export async function compareStrategies(params: {

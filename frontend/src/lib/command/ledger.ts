@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { DispatchDecisionDetails } from '@/lib/api';
 
 /**
  * Decision Ledger (Phase 10D).
@@ -16,6 +17,8 @@ export interface LedgerEvent {
   /** Simulation seconds at observation — drives timeline markers. */
   simSec: number;
   source: 'LIVE' | 'DISPATCH_LOG' | 'REPLAY';
+  /** Structured decision evidence when the strategy published it (10E-2). */
+  details?: DispatchDecisionDetails | null;
 }
 
 interface LedgerStore {

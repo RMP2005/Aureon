@@ -16,12 +16,15 @@ export default function MissionBar({
   progress,
   lastSuccessAt,
   replay,
+  scenarioName,
 }: {
   runId: string | null;
   status: FeedStatus;
   progress: RunProgress | null;
   lastSuccessAt: number;
   replay?: { playheadSec: number; durationSec: number; playing: boolean } | null;
+  /** Scenario Library display name once the run record resolves (10E-2). */
+  scenarioName?: string | null;
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -45,6 +48,7 @@ export default function MissionBar({
           <span className="hud-stamp !text-[9px] rounded-sm border border-violet-intel/40 bg-violet-intel/5 px-1.5 py-0.5 !text-[9px] text-violet-intel">
             EVIDENCE REPLAY
           </span>
+          {scenarioName && <ScenarioChip name={scenarioName} />}
         </div>
         <div className="flex items-center gap-5">
           <ClockStat label="REPLAY T+" value={simClock(replay.playheadSec)} />
@@ -96,6 +100,7 @@ export default function MissionBar({
         <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
           {runId ?? 'NO ACTIVE RUN'}
         </span>
+        {scenarioName && <ScenarioChip name={scenarioName} />}
       </div>
 
       <div className="flex items-center gap-5">
@@ -130,6 +135,14 @@ export default function MissionBar({
         </Link>
       </div>
     </header>
+  );
+}
+
+function ScenarioChip({ name }: { name: string }) {
+  return (
+    <span className="hud-stamp !text-[9px] shrink-0 rounded-sm border border-teal-core/40 bg-teal-core/5 px-1.5 py-0.5 text-teal-core">
+      {name.toUpperCase()}
+    </span>
   );
 }
 

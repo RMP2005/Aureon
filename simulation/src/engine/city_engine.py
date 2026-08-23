@@ -261,6 +261,9 @@ class CitySimulationEngine:
                 "scene_eta_sec": decision.estimated_scene_eta_sec,
                 "hospital_id": decision.target_hospital_id,
                 "rationale": decision.rationale,
+                # Structured evidence from the strategy (Phase 10E-2):
+                # nearest-ETA gaps, override reasons, coverage scores.
+                "decision": dict(decision.metadata) if decision.metadata else None,
             })
 
         self.pending_queue = unresolved_queue
@@ -513,6 +516,13 @@ class CitySimulationEngine:
             "sim_time_sec": self.sim_time_seconds,
             "sim_time_formatted": f"{int(self.sim_time_seconds // 3600):02d}:{int((self.sim_time_seconds % 3600) // 60):02d}:{int(self.sim_time_seconds % 60):02d}",
             "strategy": self.strategy.name,
+            # Adaptive-policy telemetry (Phase 10E-2): real mode distribution
+            # from strategies that classify the operating regime per dispatch.
+            **(
+                {"mode_stats": self.strategy.get_mode_stats()}
+                if hasattr(self.strategy, "get_mode_stats")
+                else {}
+            ),
             "ambulances": [
                 {
                     "id": a.id,

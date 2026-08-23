@@ -27,6 +27,7 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
             incident_rate_per_hour=request.incident_rate_per_hour,
             seed=request.seed,
             wall_clock_factor=request.wall_clock_factor,
+            scenario=request.scenario,
         )
         return ResponseEnvelope(data=result)
     except Exception as e:
@@ -35,6 +36,12 @@ async def run_simulation(request: SimulationRunRequest) -> ResponseEnvelope:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Simulation start failed",
         ) from e
+
+
+@router.get("/scenarios", response_model=ResponseEnvelope)
+async def list_scenarios() -> ResponseEnvelope:
+    """Expose the Scenario Library: named world-state presets for runs."""
+    return ResponseEnvelope(data=get_simulation_service().get_scenarios())
 
 
 @router.get("/{run_id}/status", response_model=ResponseEnvelope)

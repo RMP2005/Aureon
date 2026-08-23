@@ -248,6 +248,8 @@ function toLedgerEvent(e: ReplayEvent): Parameters<
     text: e.text,
     simSec: e.sim_time_sec,
     source: 'REPLAY',
+    // Structured decision evidence on DISPATCH events (Phase 10E-2).
+    details: e.details ?? null,
   };
 }
 
