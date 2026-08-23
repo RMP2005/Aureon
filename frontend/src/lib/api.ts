@@ -38,8 +38,111 @@ export interface SimulationRunResult {
     incident_rate_per_hour: number;
     seed: number;
   };
-  metrics: Record<string, number>;
+  metrics: SimulationMetrics;
+  dispatch_log_sample?: DispatchLogEntry[];
   executed_at: string;
+}
+
+/** Nested metrics contract — mirrors SimulationMetrics.to_dict() (city_engine.py) */
+export interface SimulationMetrics {
+  total_incidents_reported: number;
+  total_incidents_dispatched: number;
+  total_incidents_completed: number;
+  unserviced_incidents_count: number;
+  response_times_minutes: ResponseTimeStats;
+  critical_cases: CriticalCaseStats;
+  clinical_quality: ClinicalQualityStats;
+  operations: OperationsStats;
+}
+
+export interface ResponseTimeStats {
+  mean: number;
+  median: number;
+  p90: number;
+  p95: number;
+  min: number;
+  max: number;
+}
+
+export interface CriticalCaseStats {
+  count: number;
+  mean_response_time_min: number;
+  target_compliance_percent: number;
+}
+
+export interface ClinicalQualityStats {
+  capability_match_percent: number;
+  mean_hospital_suitability_score: number;
+}
+
+export interface OperationsStats {
+  total_fleet_distance_km: number;
+  fleet_utilization_percent: number;
+  avg_missions_per_ambulance: number;
+}
+
+export interface DispatchLogEntry {
+  tick: number;
+  sim_time_sec: number;
+  incident_id: string;
+  category: string;
+  severity: string;
+  ambulance_id: string;
+  callsign: string;
+  capability: string;
+  matched: boolean;
+  scene_eta_sec: number;
+  hospital_id: string | null;
+  rationale: string;
+}
+
+/** Live twin snapshot of a running simulation — GET /simulation/{run_id}/state */
+export interface RunLiveState {
+  run_id: string;
+  tick: number;
+  sim_time_sec: number;
+  sim_time_formatted: string;
+  strategy: string;
+  ambulances: TwinAmbulance[];
+  hospitals: TwinHospitalState[];
+  active_incidents: TwinIncident[];
+  completed_incidents_count: number;
+  pending_queue_count: number;
+  run_status?: RunProgress;
+}
+
+export interface TwinAmbulance {
+  id: string;
+  callsign: string;
+  capability: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  current_node_id: string;
+  active_incident_id: string | null;
+  missions_completed: number;
+  total_distance_km: number;
+}
+
+export interface TwinHospitalState {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  specialties: string[];
+  er_occupancy: string;
+  icu_occupancy: string;
+}
+
+export interface TwinIncident {
+  id: string;
+  category: string;
+  severity: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  required_capability: string;
+  assigned_ambulance: string | null;
 }
 
 export interface RunProgress {
@@ -126,4 +229,11 @@ export async function getRunById(runId: string): Promise<ApiResponse<SimulationR
 
 export async function getRunStatus(runId: string): Promise<ApiResponse<RunProgress>> {
   return apiFetch<RunProgress>(`/simulation/${runId}/status`);
+}
+
+/** Run-scoped live twin snapshot (Phase 10A-BE B1). 404 when no live engine. */
+export async function getRunLiveState(runId: string): Promise<ApiResponse<RunLiveState>> {
+  return apiFetch<RunLiveState>(
+    `/simulation/${encodeURIComponent(runId)}/state`,
+  );
 }

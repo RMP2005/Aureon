@@ -1,20 +1,17 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import FeatureGrid from '@/components/FeatureGrid';
 import SystemStatus from '@/components/SystemStatus';
 import Footer from '@/components/Footer';
 
-const Scene3D = dynamic(() => import('@/components/Scene3D'), {
-  ssr: false,
-});
+// Scene3D removed in Phase 10A — decorative sphere superseded by the
+// real digital twin (blueprint §5). Landing cinematic arrives in 10C.
 
 export default function Home() {
   return (
     <>
-      <Scene3D />
       <Navbar />
       <main>
         <HeroSection />

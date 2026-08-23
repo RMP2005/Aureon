@@ -49,6 +49,26 @@ async def get_run_status(run_id: str) -> ResponseEnvelope:
     return ResponseEnvelope(data=progress)
 
 
+@router.get("/{run_id}/state", response_model=ResponseEnvelope)
+async def get_run_live_state(run_id: str) -> ResponseEnvelope:
+    """Snapshot the living digital-twin state of an in-flight run.
+
+    Returns the engine's full city state (ambulances, hospitals, incidents)
+    plus run progress. 404 once the run has completed — fetch
+    /simulation/results/{run_id} for persisted outcomes instead.
+    """
+    state = get_simulation_service().get_run_state(run_id)
+    if state is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"No live engine for run '{run_id}' "
+                "(unknown id or already finished — see /simulation/results)"
+            ),
+        )
+    return ResponseEnvelope(data=state)
+
+
 @router.post("/compare", response_model=ResponseEnvelope)
 async def compare_strategies(request: SimulationCompareRequest) -> ResponseEnvelope:
     """Run side-by-side benchmark comparing Baseline vs Aureon intelligence."""

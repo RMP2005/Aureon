@@ -22,17 +22,52 @@ async def test_rate_limit_allows_requests_under_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_rate_limit_rejects_excessive_simulation_requests() -> None:
-    """Excessive requests to protected endpoints are rejected with 429."""
+    """Excessive requests to protected (non-exempt) endpoints are rejected with 429."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Send more requests than the limit allows in a burst
+        # /results is a protected read endpoint (hits SQLite) — not polling-exempt
         responses = []
         for _ in range(35):
-            r = await client.get("/api/v1/simulation/state")
+            r = await client.get("/api/v1/simulation/results")
             responses.append(r.status_code)
         # Some should be 200, some should be 429
         assert 429 in responses
         assert 200 in responses
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_exempts_status_polling() -> None:
+    """Run status polls at 1 Hz must survive indefinitely without 429s (Phase 10A-BE)."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        codes = set()
+        for _ in range(40):
+            r = await client.get("/api/v1/simulation/sim_nonexistent/status")
+            codes.add(r.status_code)
+    # Unknown run returns 404 — but never 429
+    assert 429 not in codes
+    assert 404 in codes
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_exempts_twin_state_polling() -> None:
+    """GET /simulation/state is exempt from rate limiting."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        codes = set()
+        for _ in range(35):
+            r = await client.get("/api/v1/simulation/state")
+            codes.add(r.status_code)
+    assert codes == {200}
+
+
+def test_limiter_still_blocks_post_budget_unit_level() -> None:
+    """The underlying sliding-window limiter still enforces budgets (unit level)."""
+    limiter = _rl_mod.SlidingWindowRateLimiter(max_requests=3, window_seconds=60)
+    assert limiter.is_allowed("k") is True
+    assert limiter.is_allowed("k") is True
+    assert limiter.is_allowed("k") is True
+    assert limiter.is_allowed("k") is False
 
 
 @pytest.mark.asyncio

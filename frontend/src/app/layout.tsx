@@ -1,10 +1,41 @@
 import type { Metadata } from 'next';
+import { IBM_Plex_Mono, Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import Providers from './providers';
 import './globals.css';
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-space-grotesk',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+});
+
 export const metadata: Metadata = {
-  title: 'Aureon — AI-Powered Urban Intelligence',
-  description: 'Digital twin platform for real-time city simulation, predictive analytics, and emergency response optimization.',
-  keywords: ['digital twin', 'AI', 'simulation', 'urban intelligence', 'emergency response'],
+  title: 'Aureon — Urban Intelligence Operating System',
+  description:
+    'Digital twin of Bengaluru with adaptive emergency dispatch intelligence and explainable AI decisions.',
+  keywords: [
+    'digital twin',
+    'emergency response',
+    'ambulance dispatch',
+    'Bengaluru',
+    'simulation',
+  ],
 };
 
 export default function RootLayout({
@@ -13,9 +44,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] antialiased">
-        {children}
+    <html
+      lang="en"
+      className={`dark ${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${plexMono.variable}`}
+    >
+      <body className="min-h-screen bg-void text-ink-primary font-sans antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

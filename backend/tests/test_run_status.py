@@ -1,5 +1,6 @@
 """Tests for live simulation status tracking (Phase 9D)."""
 
+import asyncio
 import time
 import uuid
 
@@ -194,6 +195,78 @@ async def test_background_run_error_leaks_no_internals() -> None:
         assert body["error"] is not None
         assert "Traceback" not in body["error"]
         assert "File " not in body["error"]
+
+
+# --- Phase 10A-BE: run-scoped live twin state ---
+
+
+@pytest.mark.asyncio
+async def test_live_state_endpoint_returns_city_snapshot() -> None:
+    """A registered engine snapshots deterministically through the API."""
+    svc = get_simulation_service()
+    run_id, engine, _schedule, strategy, params = svc._create_run(
+        strategy_name="aureon",
+        duration_minutes=30.0,
+        incident_rate_per_hour=12.0,
+        seed=11,
+    )
+    svc._tracker.create(run_id, strategy.name, params["duration_minutes"] * 60.0)
+    svc._active_engines[run_id] = engine
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            res = await client.get(f"/api/v1/simulation/{run_id}/state")
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert data["run_id"] == run_id
+        assert len(data["ambulances"]) == 14
+        assert data["hospitals"]
+        assert "tick" in data and "sim_time_sec" in data
+        assert data["run_status"]["run_id"] == run_id
+
+        # After the engine is deregistered (run finished), the endpoint must 404
+        svc._active_engines.pop(run_id, None)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            gone = await client.get(f"/api/v1/simulation/{run_id}/state")
+        assert gone.status_code == 404
+    finally:
+        svc._active_engines.pop(run_id, None)
+
+
+def test_get_run_state_unknown_run_returns_none() -> None:
+    assert get_simulation_service().get_run_state("sim_does_not_exist") is None
+
+
+@pytest.mark.asyncio
+async def test_live_state_endpoint_404_after_completion() -> None:
+    svc = get_simulation_service()
+    info = svc.start_simulation_background(
+        strategy_name="baseline",
+        duration_minutes=5.0,
+        incident_rate_per_hour=3.0,
+        seed=21,
+    )
+    run_id = info["run_id"]
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        prog = svc._tracker.get(run_id)
+        if prog and prog["status"] in ("completed", "failed"):
+            break
+        await asyncio.sleep(0.2)
+    assert prog["status"] == "completed"
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get(f"/api/v1/simulation/{run_id}/state")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_live_state_endpoint_unknown_run_returns_404() -> None:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/api/v1/simulation/sim_nonexistent/state")
+    assert res.status_code == 404
 
 
 # --- Phase 9E: ProgressTracker retention cleanup tests ---

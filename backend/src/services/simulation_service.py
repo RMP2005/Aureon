@@ -142,6 +142,9 @@ class SimulationService:
         # Persistent run storage
         self._store = RunStore(db_path=db_path)
         self._tracker = ProgressTracker()
+        # Live engines for runs executing in background threads (Phase 10A-BE).
+        # Keyed by run_id; enables run-scoped twin state polling.
+        self._active_engines: dict[str, Any] = {}
         logger.info("SimulationService initialized with Bangalore Digital Twin topology")
 
     def get_city_state(self) -> dict[str, Any]:
@@ -246,6 +249,7 @@ class SimulationService:
 
         duration_seconds = params["duration_minutes"] * 60.0
         self._tracker.create(run_id, strategy.name, duration_seconds)
+        self._active_engines[run_id] = engine
 
         thread = threading.Thread(
             target=self._run_background,
@@ -309,6 +313,38 @@ class SimulationService:
                 status="failed",
                 error_message="Background simulation failed",
             )
+        finally:
+            # Keep the engine briefly queryable for final-state reads; the
+            # ProgressTracker retains terminal status for its retention window.
+            self._active_engines.pop(run_id, None)
+
+    def get_run_state(self, run_id: str) -> dict[str, Any] | None:
+        """Snapshot the live engine state of an in-flight background run.
+
+        Returns None when no live engine exists for the run (unknown id,
+        already completed/evicted). The snapshot is defensively retried —
+        the engine mutates its incident dict on a worker thread.
+        """
+        engine = self._active_engines.get(run_id)
+        if engine is None:
+            return None
+
+        state: dict[str, Any] | None = None
+        for _ in range(3):
+            try:
+                state = engine.get_current_state()
+                break
+            except RuntimeError:
+                # dict changed size during iteration — retry shortly
+                time.sleep(0.01)
+        if state is None:
+            return None
+
+        progress = self._tracker.get(run_id)
+        if progress is not None:
+            state["run_status"] = progress
+        state["run_id"] = run_id
+        return state
 
     def _monitor_run(self, run_id: str, engine: CitySimulationEngine, duration_seconds: float) -> None:
         """Periodically snapshot engine state for progress tracking."""
