@@ -8,7 +8,7 @@ import { EmptyNote, PanelFrame } from './primitives';
 const KIND_STYLE: Record<string, { dot: string; label: string }> = {
   INCIDENT: { dot: 'bg-crit-red', label: 'text-crit-red' },
   DISPATCH: { dot: 'bg-teal-core', label: 'text-teal-core' },
-  RESOLVED: { dot: 'bg-violet-intel', label: 'text-violet-intel' },
+  RESOLVED: { dot: 'bg-teal-core', label: 'text-teal-core' },
   LOG: { dot: 'bg-[var(--color-text-muted)]', label: 'text-[var(--color-text-muted)]' },
 };
 

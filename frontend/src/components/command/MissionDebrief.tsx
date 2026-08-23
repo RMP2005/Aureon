@@ -38,7 +38,7 @@ export default function MissionDebrief({
           title="Camera eases to each entity as the playhead crosses its events"
           className={`hud-stamp !text-[9px] rounded-sm border px-1.5 py-0.5 transition-colors ${
             guided
-              ? 'border-violet-intel/50 bg-violet-intel/10 text-violet-intel'
+              ? 'border-teal-core/50 bg-teal-core/10 text-teal-core'
               : 'border-hairline-strong text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
           }`}
         >
@@ -94,7 +94,7 @@ export default function MissionDebrief({
                       />
                     ))}
                     {played && (
-                      <span className="ml-1 hud-stamp !text-[8px] text-violet-intel">
+                      <span className="ml-1 hud-stamp !text-[8px] text-teal-core">
                         ✓ CLOSED{ch.responseMin !== null && ` · ${ch.responseMin} MIN`}
                       </span>
                     )}
@@ -176,7 +176,7 @@ function toneFor(kind: string): string {
     case 'DISPATCH':
       return 'bg-teal-core';
     case 'RESOLVED':
-      return 'bg-violet-intel';
+      return 'bg-teal-core';
     default:
       return 'bg-white/40';
   }

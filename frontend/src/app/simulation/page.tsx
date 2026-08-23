@@ -143,7 +143,7 @@ export default function SimulationPage() {
                       : 'border-white/10 bg-white/5 hover:border-teal-core/50 hover:bg-teal-core/5'
                   }`}
                 >
-                  <p className="hud-stamp !text-[8px] text-violet-intel mb-1.5">
+                  <p className="hud-stamp !text-[8px] text-[var(--color-text-secondary)] mb-1.5">
                     {d.run.scenario.replace(/_/g, ' ').toUpperCase()}
                   </p>
                   <p className="text-sm font-semibold mb-1">{d.name}</p>
@@ -255,7 +255,7 @@ export default function SimulationPage() {
                       <p className="text-[11px] text-[var(--color-text-muted)] leading-snug mb-2 line-clamp-3">
                         {s.description}
                       </p>
-                      <span className="hud-stamp !text-[8px] rounded-sm bg-violet-intel/15 px-1.5 py-0.5 text-violet-intel">
+                      <span className="hud-stamp !text-[8px] rounded-sm border border-hairline-strong px-1.5 py-0.5 text-[var(--color-text-muted)]">
                         STRESS · {s.stress_vector.toUpperCase()}
                       </span>
                     </button>

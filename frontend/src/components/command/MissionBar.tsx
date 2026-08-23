@@ -81,7 +81,7 @@ export default function MissionBar({
     status === 'standby'
       ? { label: 'STANDBY', cls: 'text-[var(--color-text-muted)]' }
       : status === 'ended'
-        ? { label: 'RUN ENDED', cls: 'text-violet-intel' }
+        ? { label: 'RUN ENDED', cls: 'text-[var(--color-text-secondary)]' }
         : age > 6_000
           ? { label: 'FEED LOST', cls: 'text-crit-red' }
           : age > 2_500

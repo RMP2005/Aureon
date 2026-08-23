@@ -60,11 +60,7 @@ function LiveTimeline({ progress }: { progress: RunProgress | null }) {
             key={m.id}
             title={m.text}
             className={`absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 ${
-              m.kind === 'INCIDENT'
-                ? 'bg-crit-red'
-                : m.kind === 'DISPATCH'
-                  ? 'bg-teal-core'
-                  : 'bg-violet-intel'
+              MARKER_TONE[m.kind] ?? 'bg-white/40'
             }`}
             style={{ left: `${m.pct}%` }}
           />
@@ -84,7 +80,8 @@ function LiveTimeline({ progress }: { progress: RunProgress | null }) {
 const MARKER_TONE: Record<string, string> = {
   INCIDENT: 'bg-crit-red',
   DISPATCH: 'bg-teal-core',
-  ADMISSION: 'bg-violet-intel',
+  RESOLVED: 'bg-teal-core',
+  ADMISSION: 'bg-white/70',
 };
 
 function ReplayScrubber() {

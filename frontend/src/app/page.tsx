@@ -168,7 +168,8 @@ function hideScrollHint(progress: number) {
 function StaticLanding() {
   useEffect(() => {
     setLandingProgress(1);
-  }, []);  return (
+  }, []);
+  return (
     <main className="relative bg-void">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         <div className="absolute inset-0 opacity-70">
@@ -182,17 +183,21 @@ function StaticLanding() {
             The urban intelligence operating system. A living digital twin of
             Bengaluru with explainable emergency-dispatch intelligence.
           </p>
-          <Link
-            href="/command?intro=1"
-            className="pointer-events-auto mt-8 px-7 py-3 rounded-lg bg-teal-core text-black font-semibold"
-          >
-            Enter Command Center →
-          </Link>
+          <div className="pointer-events-auto mt-8 flex gap-4 justify-center">
+            <Link
+              href="/command?intro=1"
+              className="px-7 py-3 rounded-lg bg-teal-core text-black font-semibold hover:brightness-110 transition-all"
+            >
+              Enter Command Center →
+            </Link>
+            <Link
+              href="/simulation"
+              className="px-7 py-3 rounded-lg border border-hairline-strong text-sm font-medium hover:bg-white/5 transition-colors"
+            >
+              Run a Simulation
+            </Link>
+          </div>
         </div>
-      </div>
-
-      <div className="relative z-10 -mt-[100vh]">
-        <ActOverlays />
       </div>
     </main>
   );

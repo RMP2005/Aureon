@@ -38,8 +38,8 @@ const CHIP_TONES: Record<string, string> = {
   idle_at_base: 'text-[var(--color-text-muted)] border-hairline-strong',
   dispatched_to_scene: 'text-teal-core border-teal-core/30',
   on_scene_triage: 'text-amber-warn border-amber-warn/30',
-  transporting_hospital: 'text-violet-intel border-violet-intel/30',
-  at_hospital_handover: 'text-violet-intel border-violet-intel/30',
+  transporting_hospital: 'text-teal-core border-teal-core/30',
+  at_hospital_handover: 'text-[var(--color-text-secondary)] border-hairline-strong',
   returning_to_base: 'text-[var(--color-text-secondary)] border-hairline-strong',
   // Incident severities
   critical: 'text-crit-red border-crit-red/40 bg-crit-red/5',

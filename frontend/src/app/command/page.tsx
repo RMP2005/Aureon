@@ -237,12 +237,12 @@ function CenterInstrument({
       )}
 
       {feed.status === 'ended' && !inReplay && (
-        <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-violet-intel/30 bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
-          <p className="hud-stamp text-violet-intel">RUN COMPLETE — OUTCOMES ARCHIVED</p>
+        <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
+          <p className="hud-stamp text-[var(--color-text-secondary)]">RUN COMPLETE — OUTCOMES ARCHIVED</p>
           <button
             onClick={onLoadReplay}
             disabled={replayStatus === 'loading'}
-            className="mt-2 inline-block rounded-md bg-violet-intel px-4 py-1.5 text-xs font-semibold text-black transition-all hover:brightness-110 disabled:opacity-50"
+            className="mt-2 inline-block rounded-md bg-teal-core px-4 py-1.5 text-xs font-semibold text-black transition-all hover:brightness-110 disabled:opacity-50"
           >
             {replayStatus === 'loading' ? 'LOADING RECORDING…' : '▶ EVIDENCE REPLAY'}
           </button>
