@@ -60,6 +60,9 @@ export default function SimulationPage() {
         wall_clock_factor: 60,
       });
       setRunId(res.data.run_id);
+      try {
+        window.localStorage.setItem('aureon:lastRun', res.data.run_id);
+      } catch {}
       startPolling(res.data.run_id);
     } catch (e: unknown) {
       setLaunchError(e instanceof Error ? e.message : 'Unknown error');
@@ -131,12 +134,20 @@ export default function SimulationPage() {
             <p className="mt-3 text-sm text-crit-red">{launchError}</p>
           )}
           {isRunning && runId && (
-            <Link
-              href={`/twin?run=${runId}`}
-              className="ml-4 inline-block px-5 py-2 rounded-lg border border-teal-core/40 text-sm font-medium text-teal-core hover:bg-teal-core/10 transition-colors"
-            >
-              Open Live Twin →
-            </Link>
+            <>
+              <Link
+                href={`/twin?run=${runId}`}
+                className="ml-4 inline-block px-5 py-2 rounded-lg border border-teal-core/40 text-sm font-medium text-teal-core hover:bg-teal-core/10 transition-colors"
+              >
+                Open Live Twin →
+              </Link>
+              <Link
+                href={`/command?run=${runId}`}
+                className="ml-2 inline-block px-5 py-2 rounded-lg border border-hairline-strong text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+              >
+                Command Center →
+              </Link>
+            </>
           )}
         </div>
 

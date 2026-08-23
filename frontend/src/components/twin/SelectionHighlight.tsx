@@ -13,6 +13,7 @@ import { HOSPITALS } from '@/lib/twin/city-data';
  */
 const RING_COLOR_FLEET = new THREE.Color('#EDF2F7');
 const RING_COLOR_HOSPITAL = new THREE.Color('#D6B45A');
+const RING_COLOR_INCIDENT = new THREE.Color('#FF3655');
 
 export default function SelectionHighlight() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -41,6 +42,12 @@ export default function SelectionHighlight() {
         x = m.x;
         z = m.z;
       }
+    } else if (selection.kind === 'incident') {
+      const inc = getLiveBuffer().incidents.find((i) => i.id === selection.id);
+      if (inc) {
+        x = inc.x;
+        z = inc.z;
+      }
     } else {
       const h = HOSPITALS.find((hp) => hp.id === selection.id);
       if (h) {
@@ -62,7 +69,13 @@ export default function SelectionHighlight() {
     <instancedMesh ref={meshRef} args={[undefined, undefined, 1]} frustumCulled={false}>
       <ringGeometry args={[1.15, 1.35, 48]} />
       <meshBasicMaterial
-        color={selection?.kind === 'hospital' ? RING_COLOR_HOSPITAL : RING_COLOR_FLEET}
+        color={
+          selection?.kind === 'hospital'
+            ? RING_COLOR_HOSPITAL
+            : selection?.kind === 'incident'
+              ? RING_COLOR_INCIDENT
+              : RING_COLOR_FLEET
+        }
         transparent
         opacity={selection ? 0.9 : 0}
         side={THREE.DoubleSide}

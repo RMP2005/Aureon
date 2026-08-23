@@ -43,6 +43,12 @@ export default function CameraRig() {
         x = m.x;
         z = m.z;
       }
+    } else if (selection.kind === 'incident') {
+      const inc = getLiveBuffer().incidents.find((i) => i.id === selection.id);
+      if (inc) {
+        x = inc.x;
+        z = inc.z;
+      }
     } else {
       const h = HOSPITALS.find((hp) => hp.id === selection.id);
       if (h) {

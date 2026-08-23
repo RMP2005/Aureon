@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export type TwinSelection =
   | { kind: 'ambulance'; id: string }
   | { kind: 'hospital'; id: string }
+  | { kind: 'incident'; id: string }
   | null;
 
 interface TwinStore {
