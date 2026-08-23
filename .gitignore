@@ -12,6 +12,10 @@ __pycache__/
 *.egg-info/
 uv.lock
 
+# Local runtime state & tooling
+backend/aureon.db*
+.opencode/
+
 # Node
 node_modules/
 frontend/node_modules/
