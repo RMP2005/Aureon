@@ -377,6 +377,7 @@ class CitySimulationEngine:
         duration_minutes: float = 60.0,
         *,
         wall_clock_factor: float | None = None,
+        recorder: Any = None,
     ) -> SimulationMetrics:
         """Execute a full scenario from a pre-defined schedule.
 
@@ -386,6 +387,10 @@ class CitySimulationEngine:
                 wall-clock second (e.g. 60.0 → a 120-min scenario plays over
                 2 real minutes). None (default) runs as fast as compute
                 allows — benchmarks are unaffected.
+            recorder: Optional evidence-layer hook (Phase 10E). Called as
+                ``recorder.observe(engine)`` after every tick so an external
+                recorder can sample frames and journal events. None (default)
+                adds zero overhead — benchmark paths stay untouched.
         """
         self.reset()
         total_seconds = duration_minutes * 60.0
@@ -400,6 +405,8 @@ class CitySimulationEngine:
                 due_incidents.append(inc)
 
             self.step(new_incidents=due_incidents)
+            if recorder is not None:
+                recorder.observe(self)
             if tick_delay > 0:
                 time.sleep(tick_delay)
 

@@ -160,11 +160,25 @@ export interface RunProgress {
 }
 
 export interface ComparisonResult {
-  comparison_id: string;
-  baseline: Record<string, unknown>;
-  aureon_intelligence: Record<string, unknown>;
-  improvements: Record<string, number>;
-  executed_at: string;
+  comparison_id?: string;
+  experiment_meta: {
+    duration_minutes: number;
+    total_incidents: number;
+  };
+  baseline: SimulationMetrics;
+  aureon_intelligence: SimulationMetrics;
+  improvements: ComparisonImprovements;
+  executed_at?: string;
+}
+
+/** Mirrors ComparisonReport.to_dict().improvements (evaluator.py) */
+export interface ComparisonImprovements {
+  overall_response_time_improvement_percent: number;
+  critical_case_response_time_improvement_percent: number;
+  golden_hour_compliance_gain_percent: number;
+  clinical_capability_matching_gain_percent: number;
+  hospital_suitability_gain_percent: number;
+  fleet_distance_saved_km: number;
 }
 
 export interface RunSummary {
@@ -173,6 +187,33 @@ export interface RunSummary {
   strategy: string;
   status: string;
   executed_at: string;
+}
+
+/** Evidence-layer event journal entry (Phase 10E-1). */
+export interface ReplayEvent {
+  id: string;
+  kind: 'INCIDENT' | 'DISPATCH' | 'ADMISSION';
+  sim_time_sec: number;
+  text: string;
+  severity: string | null;
+  entity_kind: 'ambulance' | 'incident' | 'hospital';
+  entity_id: string;
+}
+
+/**
+ * Replay recording for a completed run — GET /simulation/{run_id}/replay.
+ * Frames are the same RunLiveState snapshots the live twin consumes; the
+ * event journal was observed from engine structures during execution.
+ */
+export interface RunReplayRecording {
+  run_id: string;
+  strategy: string;
+  duration_seconds: number;
+  frame_count: number;
+  frame_interval_sec: number;
+  event_count: number;
+  events: ReplayEvent[];
+  frames: RunLiveState[];
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
@@ -238,5 +279,12 @@ export async function getRunStatus(runId: string): Promise<ApiResponse<RunProgre
 export async function getRunLiveState(runId: string): Promise<ApiResponse<RunLiveState>> {
   return apiFetch<RunLiveState>(
     `/simulation/${encodeURIComponent(runId)}/state`,
+  );
+}
+
+/** Replay recording of a completed run (Phase 10E-1). 404 if none recorded. */
+export async function getRunReplay(runId: string): Promise<ApiResponse<RunReplayRecording>> {
+  return apiFetch<RunReplayRecording>(
+    `/simulation/${encodeURIComponent(runId)}/replay`,
   );
 }

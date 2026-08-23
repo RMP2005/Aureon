@@ -70,6 +70,23 @@ async def get_run_live_state(run_id: str) -> ResponseEnvelope:
     return ResponseEnvelope(data=state)
 
 
+@router.get("/{run_id}/replay", response_model=ResponseEnvelope)
+async def get_run_replay(run_id: str) -> ResponseEnvelope:
+    """Fetch a completed run's replay recording.
+
+    Returns the sim-time-sampled state frames and the event journal
+    (incidents, dispatches, hospital admissions) captured during execution.
+    404 for unknown runs or runs executed before the evidence layer existed.
+    """
+    recording = get_simulation_service().get_run_replay(run_id)
+    if recording is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No replay recording for run '{run_id}'",
+        )
+    return ResponseEnvelope(data=recording)
+
+
 @router.post("/compare", response_model=ResponseEnvelope)
 async def compare_strategies(request: SimulationCompareRequest) -> ResponseEnvelope:
     """Run side-by-side benchmark comparing Baseline vs Aureon intelligence."""

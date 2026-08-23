@@ -15,12 +15,15 @@ export interface LedgerEvent {
   text: string;
   /** Simulation seconds at observation — drives timeline markers. */
   simSec: number;
-  source: 'LIVE' | 'DISPATCH_LOG';
+  source: 'LIVE' | 'DISPATCH_LOG' | 'REPLAY';
 }
 
 interface LedgerStore {
   events: LedgerEvent[];
+  /** Transient evidence-link highlight (marker click → ledger entry). */
+  highlightId: string | null;
   append: (events: LedgerEvent[]) => void;
+  setHighlight: (id: string | null) => void;
   clear: () => void;
 }
 
@@ -28,7 +31,9 @@ const MAX_EVENTS = 200;
 
 export const useLedgerStore = create<LedgerStore>((set) => ({
   events: [],
+  highlightId: null,
   append: (incoming) =>
     set((s) => ({ events: [...incoming, ...s.events].slice(0, MAX_EVENTS) })),
-  clear: () => set({ events: [] }),
+  setHighlight: (highlightId) => set({ highlightId }),
+  clear: () => set({ events: [], highlightId: null }),
 }));

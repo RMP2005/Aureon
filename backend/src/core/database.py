@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS simulation_runs (
     created_at      TEXT NOT NULL,
     completed_at    TEXT
 );
+
+CREATE TABLE IF NOT EXISTS run_recordings (
+    run_id             TEXT PRIMARY KEY,
+    strategy           TEXT,
+    duration_seconds   REAL,
+    frame_count        INTEGER,
+    frame_interval_sec REAL,
+    event_count        INTEGER,
+    payload            BLOB NOT NULL,
+    created_at         TEXT NOT NULL
+);
 """
 
 

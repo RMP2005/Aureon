@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import TwinCanvas from '@/components/twin/TwinCanvas';
@@ -13,6 +13,7 @@ import EntityInspector from '@/components/command/EntityInspector';
 import TimelineShell from '@/components/command/TimelineShell';
 import MetricsStrip from '@/components/command/MetricsStrip';
 import { useCommandFeed } from '@/hooks/useCommandFeed';
+import { useReplayStore } from '@/lib/twin/replay';
 
 /**
  * Command Center (Phase 10D).
@@ -47,7 +48,23 @@ function CommandInner() {
   }, [searchParams]);
 
   const feed = useCommandFeed(runId);
-  const standby = !feed.liveState && feed.status !== 'ended';
+
+  const replayStatus = useReplayStore((s) => s.status);
+  const replayFrame = useReplayStore((s) => s.currentFrame);
+  const replayRecording = useReplayStore((s) => s.recording);
+  const playheadSec = useReplayStore((s) => s.playheadSec);
+  const loadRecording = useReplayStore((s) => s.loadRecording);
+  const stopReplay = useReplayStore((s) => s.stop);
+  const inReplay = replayStatus === 'ready' || replayStatus === 'playing';
+
+  // Switching runs always tears down any active replay session.
+  useEffect(() => {
+    stopReplay();
+  }, [runId, stopReplay]);
+
+  // Panels read the replay frame while scrubbing — identical RunLiveState
+  // shape as live telemetry, so no panel knows which source it renders.
+  const panelState = inReplay ? replayFrame : feed.liveState;
 
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-void">
@@ -56,21 +73,39 @@ function CommandInner() {
         status={feed.status}
         progress={feed.progress}
         lastSuccessAt={feed.lastSuccessAt}
+        replay={
+          inReplay
+            ? {
+                playheadSec,
+                durationSec: replayRecording?.duration_seconds ?? 0,
+                playing: replayStatus === 'playing',
+              }
+            : null
+        }
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[19rem_1fr_20rem] grid-rows-[minmax(0,1fr)_auto] gap-2 p-2">
         {/* Left rail */}
-        <IncidentQueueColumn liveState={feed.liveState} />
+        <IncidentQueueColumn liveState={panelState} />
 
         {/* Center instrument */}
-        <CenterInstrument feed={feed} />
+        <CenterInstrument
+          feed={feed}
+          inReplay={inReplay}
+          replayStatus={replayStatus}
+          onLoadReplay={() => runId && loadRecording(runId)}
+          onExitReplay={stopReplay}
+        />
 
         {/* Right rail */}
-        <RightRail liveState={feed.liveState} />
+        <RightRail liveState={panelState} />
 
         {/* Timeline spans center+right under the rails */}
         <div className="col-span-2 col-start-2 min-h-0 rounded-lg border border-hairline bg-panel-1/80">
-          <TimelineShell progress={feed.progress} />
+          <TimelineShell
+            mode={inReplay ? 'replay' : 'live'}
+            progress={feed.progress}
+          />
         </div>
       </div>
 
@@ -96,13 +131,36 @@ function IncidentQueueColumn({ liveState }: { liveState: ReturnType<typeof useCo
 
 function CenterInstrument({
   feed,
+  inReplay,
+  replayStatus,
+  onLoadReplay,
+  onExitReplay,
 }: {
   feed: ReturnType<typeof useCommandFeed>;
+  inReplay: boolean;
+  replayStatus: ReturnType<typeof useReplayStore.getState>['status'];
+  onLoadReplay: () => void;
+  onExitReplay: () => void;
 }) {
-  const standby = !feed.liveState && feed.status !== 'ended';
+  const replayError = useReplayStore((s) => s.error);
+  const standby = !feed.liveState && !inReplay && feed.status !== 'ended';
+
   return (
     <div className="relative min-h-0 overflow-hidden rounded-lg border border-hairline">
       <TwinCanvas />
+
+      {/* Replay session controls */}
+      {inReplay && (
+        <div className="absolute left-3 top-3 z-10">
+          <button
+            onClick={onExitReplay}
+            className="hud-stamp rounded-md border border-violet-intel/40 bg-panel-1/90 px-3 py-1.5 text-violet-intel backdrop-blur transition-colors hover:bg-violet-intel/10"
+          >
+            EXIT REPLAY ✕
+          </button>
+        </div>
+      )}
+
       {standby && (
         <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
           <p className="hud-stamp text-[var(--color-text-secondary)]">NO ACTIVE RUN</p>
@@ -114,11 +172,20 @@ function CenterInstrument({
           </Link>
         </div>
       )}
-      {feed.status === 'ended' && (
-        <div className="pointer-events-none absolute inset-x-0 top-4 z-10 mx-auto w-fit">
-          <span className="hud-stamp rounded-full border border-violet-intel/30 bg-panel-1/90 px-4 py-1.5 text-violet-intel backdrop-blur">
-            RUN COMPLETE — OUTCOMES ARCHIVED
-          </span>
+
+      {feed.status === 'ended' && !inReplay && (
+        <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-violet-intel/30 bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
+          <p className="hud-stamp text-violet-intel">RUN COMPLETE — OUTCOMES ARCHIVED</p>
+          <button
+            onClick={onLoadReplay}
+            disabled={replayStatus === 'loading'}
+            className="mt-2 inline-block rounded-md bg-violet-intel px-4 py-1.5 text-xs font-semibold text-black transition-all hover:brightness-110 disabled:opacity-50"
+          >
+            {replayStatus === 'loading' ? 'LOADING RECORDING…' : '▶ EVIDENCE REPLAY'}
+          </button>
+          {replayError && (
+            <p className="mt-1.5 hud-stamp !text-[9px] text-crit-red">{replayError}</p>
+          )}
         </div>
       )}
     </div>

@@ -7,24 +7,70 @@ import type { RunProgress } from '@/lib/api';
 
 /**
  * Top mission bar (Phase 10D) — run identity, sim clock, feed health.
- * STALE/LOST reflect real poll age, not assumptions.
+ * STALE/LOST reflect real poll age, not assumptions. In replay mode
+ * (Phase 10E-1) it stamps REPLAY and drives the clock from the playhead.
  */
 export default function MissionBar({
   runId,
   status,
   progress,
   lastSuccessAt,
+  replay,
 }: {
   runId: string | null;
   status: FeedStatus;
   progress: RunProgress | null;
   lastSuccessAt: number;
+  replay?: { playheadSec: number; durationSec: number; playing: boolean } | null;
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(t);
   }, []);
+
+  if (replay) {
+    return (
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="font-display text-base font-semibold tracking-tight">
+            Aureon <span className="text-teal-core">·</span>{' '}
+            <span className="hud-label align-middle text-[var(--color-text-secondary)]">
+              Command
+            </span>
+          </span>
+          <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
+            {runId ?? ''}
+          </span>
+          <span className="hud-stamp !text-[9px] rounded-sm border border-violet-intel/40 bg-violet-intel/5 px-1.5 py-0.5 !text-[9px] text-violet-intel">
+            EVIDENCE REPLAY
+          </span>
+        </div>
+        <div className="flex items-center gap-5">
+          <ClockStat label="REPLAY T+" value={simClock(replay.playheadSec)} />
+          <ClockStat label="SCENARIO" value={simClock(replay.durationSec)} />
+          <span className="hud-stamp flex items-center gap-2 text-violet-intel">
+            <span
+              className={`h-1.5 w-1.5 rounded-full bg-current ${replay.playing ? 'animate-pulse' : ''}`}
+            />
+            {replay.playing ? 'PLAYING' : 'PAUSED'}
+          </span>
+          <Link
+            href="/compare"
+            className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+          >
+            COMPARE
+          </Link>
+          <Link
+            href="/simulation"
+            className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+          >
+            LAUNCH RUN →
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   const age = status === 'live' ? now - lastSuccessAt : Infinity;
   const feedTone =
@@ -70,6 +116,12 @@ export default function MissionBar({
           <span className={`h-1.5 w-1.5 rounded-full bg-current ${feedTone.label === 'LIVE' ? 'animate-pulse' : ''}`} />
           {feedTone.label}
         </span>
+        <Link
+          href="/compare"
+          className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+        >
+          COMPARE
+        </Link>
         <Link
           href="/simulation"
           className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"

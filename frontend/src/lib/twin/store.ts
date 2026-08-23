@@ -10,6 +10,8 @@ interface TwinStore {
   selection: TwinSelection;
   hovered: string | null;
   select: (selection: TwinSelection) => void;
+  /** Deterministic selection (no toggle) — used by replay evidence clicks. */
+  focus: (selection: NonNullable<TwinSelection>) => void;
   setHovered: (id: string | null) => void;
 }
 
@@ -25,5 +27,6 @@ export const useTwinStore = create<TwinStore>((set) => ({
           ? null
           : selection,
     })),
+  focus: (selection) => set({ selection }),
   setHovered: (hovered) => set({ hovered }),
 }));

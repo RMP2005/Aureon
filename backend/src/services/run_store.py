@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 import sqlite3
+from datetime import datetime, timezone
 from typing import Any
 
 from src.core.database import get_default_connection
@@ -99,6 +101,66 @@ class RunStore:
         conn = self._get_conn()
         row = conn.execute("SELECT COUNT(*) as cnt FROM simulation_runs").fetchone()
         return row["cnt"]
+
+    # ------------------------------------------------------------------
+    # Run recordings (Phase 10E-1 replay evidence layer).
+    # ------------------------------------------------------------------
+    def save_recording(self, recording: dict[str, Any]) -> None:
+        """Persist a run's replay recording as a gzip-compressed JSON blob.
+
+        Frames are repetitive engine state snapshots — compression keeps a
+        full multi-hour recording in the low hundreds of KB.
+        """
+        payload = gzip.compress(
+            json.dumps(
+                {"events": recording["events"], "frames": recording["frames"]}
+            ).encode("utf-8")
+        )
+        conn = self._get_conn()
+        conn.execute(
+            """INSERT OR REPLACE INTO run_recordings
+               (run_id, strategy, duration_seconds, frame_count,
+                frame_interval_sec, event_count, payload, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                recording["run_id"],
+                recording.get("strategy"),
+                recording.get("duration_seconds"),
+                recording.get("frame_count", 0),
+                recording.get("frame_interval_sec"),
+                recording.get("event_count", len(recording.get("events", []))),
+                payload,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+
+    def get_recording(self, run_id: str) -> dict[str, Any] | None:
+        """Retrieve a run's full replay recording, or None."""
+        conn = self._get_conn()
+        try:
+            row = conn.execute(
+                """SELECT run_id, strategy, duration_seconds, frame_count,
+                          frame_interval_sec, event_count, payload
+                   FROM run_recordings WHERE run_id = ?""",
+                (run_id,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            # Table missing (database created before Phase 10E) — no recording.
+            return None
+        if row is None:
+            return None
+        body = json.loads(gzip.decompress(row["payload"]).decode("utf-8"))
+        return {
+            "run_id": row["run_id"],
+            "strategy": row["strategy"],
+            "duration_seconds": row["duration_seconds"],
+            "frame_count": row["frame_count"],
+            "frame_interval_sec": row["frame_interval_sec"],
+            "event_count": row["event_count"],
+            "events": body.get("events", []),
+            "frames": body.get("frames", []),
+        }
 
     def delete_run(self, run_id: str) -> bool:
         """Delete a run. Returns True if a row was deleted."""

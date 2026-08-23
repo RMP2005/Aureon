@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from src.core.config import settings
+from src.services.run_recorder import RunRecorder
 from src.services.run_store import RunStore
 
 # Ensure workspace root and simulation are in sys.path
@@ -272,6 +273,9 @@ class SimulationService:
     ) -> None:
         """Execute simulation in background thread with progress monitoring."""
         duration_seconds = params["duration_minutes"] * 60.0
+        # Evidence layer (Phase 10E-1): record frames + event journal for
+        # replay. Sampling is sim-time based, so pacing does not affect it.
+        recorder = RunRecorder()
 
         mon = threading.Thread(
             target=self._monitor_run,
@@ -283,9 +287,12 @@ class SimulationService:
             self._tracker.set_status(run_id, "running")
             mon.start()
             metrics = engine.run_scenario(
-                schedule=schedule, duration_minutes=params["duration_minutes"],
+                schedule=schedule,
+                duration_minutes=params["duration_minutes"],
                 wall_clock_factor=wall_clock_factor,
+                recorder=recorder,
             )
+            recorder.finish(engine)
 
             result_data = {
                 "run_id": run_id,
@@ -296,6 +303,17 @@ class SimulationService:
                 "executed_at": datetime.now(timezone.utc).isoformat(),
             }
             self._store.save_run(run_id, result_data)
+            try:
+                self._store.save_recording(
+                    recorder.to_recording(
+                        run_id=run_id,
+                        strategy=strategy.name,
+                        duration_seconds=duration_seconds,
+                    )
+                )
+            except Exception:
+                # Recording persistence must never fail the run itself.
+                logger.exception("Failed to persist replay recording for %s", run_id)
             self._tracker.set_status(
                 run_id, "completed", progress_percent=100.0,
                 elapsed_seconds=duration_seconds,
@@ -387,6 +405,10 @@ class SimulationService:
     def get_run_results(self, run_id: str) -> dict[str, Any] | None:
         """Get metrics and logs of a past simulation run."""
         return self._store.get_run(run_id)
+
+    def get_run_replay(self, run_id: str) -> dict[str, Any] | None:
+        """Fetch a completed run's replay recording (frames + event journal)."""
+        return self._store.get_recording(run_id)
 
     def list_runs(self) -> list[dict[str, Any]]:
         """List summary of all completed simulation runs."""
