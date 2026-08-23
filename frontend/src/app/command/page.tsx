@@ -16,6 +16,7 @@ import TimelineShell from '@/components/command/TimelineShell';
 import MetricsStrip from '@/components/command/MetricsStrip';
 import { useCommandFeed } from '@/hooks/useCommandFeed';
 import { useReplayStore } from '@/lib/twin/replay';
+import { useSessionStore } from '@/lib/twin/store';
 import { requestIntroSweep } from '@/lib/twin/intro';
 import { launchDemo } from '@/lib/api';
 
@@ -193,6 +194,9 @@ function CenterInstrument({
     setDemoLaunching(true);
     try {
       const res = await launchDemo(null); // server resolves its flagship
+      useSessionStore
+        .getState()
+        .setDemo({ ...res.data.demo, runId: res.data.run_id });
       router.replace(`/command?run=${res.data.run_id}`);
     } catch {
       setDemoLaunching(false);
@@ -216,8 +220,13 @@ function CenterInstrument({
       )}
 
       {standby && (
-        <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
+        <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit max-w-xl rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
           <p className="hud-stamp text-[var(--color-text-secondary)]">NO ACTIVE RUN</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-text-muted)]">
+            Launch a curated showcase — a city crisis unfolds live while Aureon
+            dispatches autonomously. Every decision is logged with explainable
+            evidence.
+          </p>
           <div className="mt-2 flex items-center justify-center gap-2">
             <button
               onClick={startShowcase}

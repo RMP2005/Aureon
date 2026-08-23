@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { FeedStatus } from '@/hooks/useCommandFeed';
 import type { RunProgress } from '@/lib/api';
+import { useSessionStore } from '@/lib/twin/store';
 
 /**
  * Top mission bar (Phase 10D) — run identity, sim clock, feed health.
@@ -45,6 +46,7 @@ export default function MissionBar({
           <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
             {runId ?? ''}
           </span>
+          <ShowcaseChip runId={runId} />
           <span className="hud-stamp !text-[9px] rounded-sm border border-violet-intel/40 bg-violet-intel/5 px-1.5 py-0.5 !text-[9px] text-violet-intel">
             EVIDENCE REPLAY
           </span>
@@ -100,6 +102,7 @@ export default function MissionBar({
         <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
           {runId ?? 'NO ACTIVE RUN'}
         </span>
+        <ShowcaseChip runId={runId} />
         {scenarioName && <ScenarioChip name={scenarioName} />}
       </div>
 
@@ -142,6 +145,20 @@ function ScenarioChip({ name }: { name: string }) {
   return (
     <span className="hud-stamp !text-[9px] shrink-0 rounded-sm border border-teal-core/40 bg-teal-core/5 px-1.5 py-0.5 text-teal-core">
       {name.toUpperCase()}
+    </span>
+  );
+}
+
+/** Marks runs launched from the Demo Library (Phase 11B golden path). */
+function ShowcaseChip({ runId }: { runId: string | null }) {
+  const demo = useSessionStore((s) => s.demo);
+  if (!demo || demo.runId !== runId) return null;
+  return (
+    <span
+      title={`Curated showcase · ${demo.name}`}
+      className="hud-stamp !text-[9px] shrink-0 rounded-sm border border-hairline-strong px-1.5 py-0.5 text-[var(--color-text-secondary)]"
+    >
+      ◈ SHOWCASE
     </span>
   );
 }

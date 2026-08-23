@@ -30,3 +30,21 @@ export const useTwinStore = create<TwinStore>((set) => ({
   focus: (selection) => set({ selection }),
   setHovered: (hovered) => set({ hovered }),
 }));
+
+interface DemoSession {
+  key: string;
+  name: string;
+  runId: string;
+}
+
+interface SessionStore {
+  /** Curated-demo identity bound to the run it launched (Phase 11B). */
+  demo: DemoSession | null;
+  setDemo: (demo: DemoSession | null) => void;
+}
+
+/** Cross-cutting session context. Changes rarely — safe for React. */
+export const useSessionStore = create<SessionStore>((set) => ({
+  demo: null,
+  setDemo: (demo) => set({ demo }),
+}));

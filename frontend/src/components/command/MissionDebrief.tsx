@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import type { ReplayEvent, RunReplayRecording } from '@/lib/api';
 import { useReplayStore } from '@/lib/twin/replay';
 import { EmptyNote, PanelFrame } from './primitives';
@@ -33,17 +34,25 @@ export default function MissionDebrief({
     <PanelFrame
       title="Mission Debrief"
       right={
-        <button
-          onClick={toggleGuided}
-          title="Camera eases to each entity as the playhead crosses its events"
-          className={`hud-stamp !text-[9px] rounded-sm border px-1.5 py-0.5 transition-colors ${
-            guided
-              ? 'border-teal-core/50 bg-teal-core/10 text-teal-core'
-              : 'border-hairline-strong text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
-          }`}
-        >
-          GUIDED {guided ? 'ON' : 'OFF'}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/compare"
+            className="hud-stamp !text-[9px] rounded-sm border border-hairline-strong px-1.5 py-0.5 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)]"
+          >
+            COMPARE →
+          </Link>
+          <button
+            onClick={toggleGuided}
+            title="Camera eases to each entity as the playhead crosses its events"
+            className={`hud-stamp !text-[9px] rounded-sm border px-1.5 py-0.5 transition-colors ${
+              guided
+                ? 'border-teal-core/50 bg-teal-core/10 text-teal-core'
+                : 'border-hairline-strong text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+            }`}
+          >
+            GUIDED {guided ? 'ON' : 'OFF'}
+          </button>
+        </div>
       }
     >
       {chapters.length === 0 ? (
