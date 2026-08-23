@@ -1,24 +1,199 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import HeroSection from '@/components/HeroSection';
-import FeatureGrid from '@/components/FeatureGrid';
-import SystemStatus from '@/components/SystemStatus';
-import Footer from '@/components/Footer';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import LandingCanvas from '@/components/landing/LandingCanvas';
+import ActOverlays from '@/components/landing/ActOverlays';
+import { setLandingProgress } from '@/lib/landing/progress';
+import { useCinematicAudio } from '@/hooks/useCinematicAudio';
 
-// Scene3D removed in Phase 10A — decorative sphere superseded by the
-// real digital twin (blueprint §5). Landing cinematic arrives in 10C.
+/**
+ * Cinematic landing journey (Phase 10C).
+ *
+ * One pinned canvas, five acts, zero dashboard chrome. The command center's
+ * zero-scroll discipline lives at /twin — these two experiences never mix.
+ */
 
 export default function Home() {
+  // Decide after mount — server and client must agree at hydration.
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, []);
+
+  return reducedMotion ? <StaticLanding /> : <JourneyLanding />;
+}
+
+/** Full cinematic experience: sticky canvas + scrubbed acts + audio. */
+function JourneyLanding() {
+  const journeyRef = useRef<HTMLDivElement>(null);
+  const audio = useCinematicAudio();
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const ctx = gsap.context(() => {
+      // Master scrub — one trigger drives scene progress…
+      ScrollTrigger.create({
+        trigger: journeyRef.current,
+        start: 'top top',
+        end: 'bottom bottom',
+        onUpdate: (self) => {
+          setLandingProgress(self.progress);
+          audio.setIntensity(
+            // Siren swells through the pulse act, recedes after.
+            Math.max(0, 1 - Math.abs(self.progress - 0.56) / 0.24),
+          );
+          hideScrollHint(self.progress);
+        },
+      });
+
+      // …and per-act copy choreography.
+      gsap.utils.toArray<HTMLElement>('[data-act]').forEach((section) => {
+        const copies = section.querySelectorAll('[data-act-copy]');
+        gsap.fromTo(
+          copies,
+          { autoAlpha: 0, y: 34 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            stagger: 0.12,
+            duration: 0.85,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: section,
+              start: 'top 62%',
+              end: 'center 42%',
+              toggleActions: 'play reverse play reverse',
+            },
+          },
+        );
+      });
+    }, journeyRef);
+
+    return () => ctx.revert();
+    // Audio setters are stable refs — safe to omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
+  }, []);
+
   return (
-    <>
-      <Navbar />
-      <main>
-        <HeroSection />
-        <FeatureGrid />
-        <SystemStatus />
-      </main>
-      <Footer />
-    </>
+    <main ref={journeyRef} className="relative bg-void">
+      {/* Pinned stage */}
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+        <div className="absolute inset-0">
+          <LandingCanvas />
+        </div>
+
+        {/* Wordmark */}
+        <div className="pointer-events-none absolute left-6 top-6 z-20 select-none">
+          <p className="font-display text-lg font-semibold tracking-tight">
+            Aureon <span className="text-teal-core">/</span>
+            <span className="hud-label ml-2 align-middle text-[var(--color-text-muted)]">
+              Urban Intelligence OS
+            </span>
+          </p>
+        </div>
+
+        {/* Opening splash — dissolves into Act I */}
+        <Splash />
+
+        {/* Scroll invitation */}
+        <div
+          id="scroll-hint"
+          className="pointer-events-none absolute bottom-7 inset-x-0 z-20 flex flex-col items-center gap-2 transition-opacity"
+        >
+          <span className="hud-label text-[var(--color-text-muted)]">Scroll</span>
+          <div className="h-8 w-px bg-gradient-to-b from-teal-core to-transparent" />
+        </div>
+
+        {/* Sound opt-in (autoplay-policy compliant) */}
+        <button
+          onClick={audio.enabled ? audio.disable : audio.enable}
+          className="absolute bottom-6 right-6 z-30 hud-stamp rounded-full border border-hairline-strong px-4 py-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+        >
+          {audio.enabled ? '◉ SOUND ON' : '◎ SOUND OFF'}
+        </button>
+      </div>
+
+      {/* Scroll narrative above the stage */}
+      <div className="relative z-10 -mt-[100vh] pointer-events-none">
+        <ActOverlays />
+      </div>
+    </main>
+  );
+}
+
+function Splash() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+    const el = ref.current;
+    if (!el) return;
+    const st = ScrollTrigger.create({
+      start: 40,
+      end: 'max',
+      onUpdate: (self) => {
+        el.style.opacity = String(Math.max(0, 1 - self.scroll() / 260));
+      },
+    });
+    return () => st.kill();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+    >
+      <h1 className="font-display text-[clamp(3rem,9vw,7rem)] font-bold tracking-tight text-center leading-none">
+        Aureon<span className="text-gradient">.</span>
+      </h1>
+    </div>
+  );
+}
+
+function hideScrollHint(progress: number) {
+  const hint = document.getElementById('scroll-hint');
+  if (hint) hint.style.opacity = progress > 0.04 ? '0' : '1';
+}
+
+/** Reduced-motion fallback: final-frame city, no scrubbing, plain flow. */
+function StaticLanding() {
+  useEffect(() => {
+    setLandingProgress(1);
+  }, []);  return (
+    <main className="relative bg-void">
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+        <div className="absolute inset-0 opacity-70">
+          <LandingCanvas />
+        </div>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6">
+          <p className="font-display text-[clamp(2.5rem,7vw,5rem)] font-bold tracking-tight">
+            Aureon<span className="text-gradient">.</span>
+          </p>
+          <p className="mt-4 max-w-xl text-[var(--color-text-secondary)]">
+            The urban intelligence operating system. A living digital twin of
+            Bengaluru with explainable emergency-dispatch intelligence.
+          </p>
+          <Link
+            href="/twin"
+            className="pointer-events-auto mt-8 px-7 py-3 rounded-lg bg-teal-core text-black font-semibold"
+          >
+            Launch Live Twin →
+          </Link>
+        </div>
+      </div>
+
+      <div className="relative z-10 -mt-[100vh]">
+        <ActOverlays />
+      </div>
+    </main>
   );
 }
