@@ -6,7 +6,7 @@
  * state — entity motion must never trigger re-renders.
  */
 import type { RunLiveState } from '@/lib/api';
-import { project } from './projection';
+import { safeProject } from './projection';
 
 export interface AmbulanceMotion {
   /** Currently rendered position. */
@@ -80,7 +80,10 @@ export function ingestLiveState(state: RunLiveState): void {
   let available = 0;
   for (const a of state.ambulances) {
     seen.add(a.id);
-    const [tx, tz] = project(a.longitude, a.latitude);
+    // NaN defense: an entity with missing/corrupt coordinates is parked
+    // at the city center (finite) rather than poisoning the scene. The
+    // next valid snapshot repositions it normally.
+    const [tx, tz] = safeProject(a.longitude, a.latitude);
     const existing = buffer.ambulances.get(a.id);
     if (existing) {
       existing.tx = tx;
@@ -107,7 +110,7 @@ export function ingestLiveState(state: RunLiveState): void {
   }
 
   buffer.incidents = state.active_incidents.map((inc) => {
-    const [x, z] = project(inc.longitude, inc.latitude);
+    const [x, z] = safeProject(inc.longitude, inc.latitude);
     return {
       id: inc.id,
       x,
@@ -136,6 +139,10 @@ export function ingestLiveState(state: RunLiveState): void {
 export function advanceMotions(dt: number): void {
   const k = 1 - Math.exp(-MOTION_RATE * dt);
   for (const m of buffer.ambulances.values()) {
+    // Guard the easing loop: a non-finite rendered position would stick
+    // forever (NaN + finite = NaN) and leak into every downstream matrix.
+    if (!Number.isFinite(m.x)) m.x = m.tx;
+    if (!Number.isFinite(m.z)) m.z = m.tz;
     m.x += (m.tx - m.x) * k;
     m.z += (m.tz - m.z) * k;
   }

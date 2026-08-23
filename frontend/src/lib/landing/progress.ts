@@ -9,6 +9,8 @@
 /** Total scrollable length expressed in viewport-heights of content. */
 export const JOURNEY_VH = 520;
 
+export type HighlightKind = 'reason' | 'evidence' | 'crit';
+
 export interface ActDef {
   id: string;
   /** Progress range [start, end]. */
@@ -16,6 +18,12 @@ export interface ActDef {
   kicker: string;
   title: string;
   body: string;
+  /**
+   * Phrases to render as semantic keyword highlights (Phase 11-refinement).
+   * Contract-bound: reason = AI/prediction/decisions, evidence = measured
+   * facts, crit = incidents/danger. Applied left-to-right, first match.
+   */
+  highlights?: [phrase: string, kind: HighlightKind][];
 }
 
 export const ACTS: ActDef[] = [
@@ -25,6 +33,7 @@ export const ACTS: ActDef[] = [
     kicker: 'Act I — Awakening',
     title: 'A city of twelve million bets on minutes.',
     body: 'Before dawn, before the first siren, Bengaluru is already moving. This is the network that keeps it alive.',
+    highlights: [['siren', 'crit']],
   },
   {
     id: 'materialize',
@@ -39,6 +48,10 @@ export const ACTS: ActDef[] = [
     kicker: 'Act III — The Pulse',
     title: 'Hesitation is the only wrong answer.',
     body: 'An emergency breaks the pattern. Fourteen units redistribute across the grid before the first call ends.',
+    highlights: [
+      ['emergency', 'crit'],
+      ['redistribute', 'reason'],
+    ],
   },
   {
     id: 'intelligence',
@@ -46,6 +59,10 @@ export const ACTS: ActDef[] = [
     kicker: 'Act IV — The Intelligence',
     title: 'Decided in milliseconds. Explained in words.',
     body: 'Aureon weighs traffic, capability and outcome — then shows its reasoning. Accountable intelligence, awake at city scale.',
+    highlights: [
+      ['shows its reasoning', 'reason'],
+      ['accountable intelligence', 'reason'],
+    ],
   },
   {
     id: 'invitation',

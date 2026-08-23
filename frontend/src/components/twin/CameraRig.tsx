@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -15,7 +15,8 @@ const OPERATIONAL_POSITION = new THREE.Vector3(0, 95, 78);
 const OPERATIONAL_TARGET = new THREE.Vector3(0, 0, 0);
 /** Landing journey's final hero framing — continuity handoff start. */
 const LANDING_HERO_POSITION = new THREE.Vector3(0, 76, 100);
-const INTRO_SWEEP_SEC = 2.4;
+/** Entry budget (Phase 11-refinement): sweep + boot ≤ 2 seconds total. */
+const INTRO_SWEEP_SEC = 1.6;
 
 /**
  * Camera rig (Phase 10B) — blueprint camera-stability rules:
@@ -40,6 +41,41 @@ export default function CameraRig() {
     posFrom?: THREE.Vector3;
     posTo?: THREE.Vector3;
   } | null>(null);
+
+  // Intro sweep (Phase 10F-1, hardened Phase 11-stability): armed by
+  // ?intro=1 on the command page. Consumed once the rig is actually
+  // ready — if the scene never mounts or the controls are missing, the
+  // request expires harmlessly instead of throwing.
+  const [sweepArmed, setSweepArmed] = useState(false);
+  useEffect(() => {
+    if (!consumeIntroSweep()) return;
+    setSweepArmed(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sweepArmed) return;
+    const controls = controlsRef.current;
+    // Scene not ready yet (canvas still initializing): skip safely. The
+    // camera simply starts at its operational framing — no crash, no
+    // partial gesture.
+    if (!controls || !controls.object) {
+      setSweepArmed(false);
+      return;
+    }
+    tween.current = {
+      active: true,
+      t: 0,
+      duration: INTRO_SWEEP_SEC,
+      targetFrom: OPERATIONAL_TARGET.clone(),
+      targetTo: OPERATIONAL_TARGET.clone(),
+      posFrom: LANDING_HERO_POSITION.clone(),
+      posTo: OPERATIONAL_POSITION.clone(),
+    };
+    // Jump to the landing's hero framing so the descent reads as one
+    // continuous gesture from the journey above.
+    controls.object.position.copy(LANDING_HERO_POSITION);
+    setSweepArmed(false);
+  }, [sweepArmed]);
 
   useEffect(() => {
     const controls = controlsRef.current;

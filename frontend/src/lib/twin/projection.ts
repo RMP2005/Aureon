@@ -67,6 +67,28 @@ export function project(lng: number, lat: number): [number, number] {
   return [x, z];
 }
 
+/**
+ * Project with NaN defense (Phase 11-stability).
+ *
+ * Any non-finite geodetic input — a malformed engine snapshot, a missing
+ * coordinate on first poll, corrupt JSON — would otherwise flow straight
+ * into Three.js matrices and geometry attributes, where it surfaces as
+ * "Computed radius is NaN" or invisible/broken rendering. Invalid
+ * coordinates collapse to the city center instead of poisoning the scene.
+ * Valid inputs pass through bit-identical.
+ */
+export function safeProject(lng: number, lat: number): [number, number] {
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+    return [0, 0];
+  }
+  return project(lng, lat);
+}
+
+/** True when [x, z] can safely enter a Three.js matrix or attribute. */
+export function isFiniteXZ(x: number, z: number): boolean {
+  return Number.isFinite(x) && Number.isFinite(z);
+}
+
 /** Unproject world XZ back to [lng, lat] (selection readouts, debugging). */
 export function unproject(x: number, z: number): [number, number] {
   const lng = x / (COS_LAT * SCALE) + CENTER_LNG;

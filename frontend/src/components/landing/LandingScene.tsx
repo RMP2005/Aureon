@@ -68,6 +68,7 @@ export default function LandingScene() {
       <MaterializingCity />
       <RisingInfrastructure />
       <AwakeningFleet />
+      <EpilogueTopology />
       <CinematicCamera />
     </>
   );
@@ -107,6 +108,7 @@ function MaterializingCity() {
     () =>
       TIER_WINDOWS.map(({ tier, start, end, finalOpacity }) => {
         const buffer = getRoadBuffer(tier);
+        if (!buffer) return null;
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(buffer, 2));
         geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
@@ -119,7 +121,12 @@ function MaterializingCity() {
           geometry,
           totalVertices: buffer.length / 2,
         };
-      }),
+      }).filter(
+        (t): t is (typeof TIER_WINDOWS)[number] & {
+          geometry: THREE.BufferGeometry;
+          totalVertices: number;
+        } => t !== null,
+      ),
     [],
   );
 
@@ -317,24 +324,30 @@ function AwakeningFleet() {
   const workScaleV = useRef(new THREE.Vector3());
   const UP = useRef(new THREE.Vector3(0, 1, 0));
 
-  useFrame(({ clock }) => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    const p = getLandingProgress();
-    const t = clock.elapsedTime;
+    useFrame(({ clock }) => {
+      const mesh = meshRef.current;
+      if (!mesh) return;
+      const p = getLandingProgress();
+      const t = clock.elapsedTime;
 
-    for (let i = 0; i < FLEET_SPOTS.length; i++) {
-      const u = FLEET_SPOTS[i];
-      const k = p >= u.appearAt ? easeOutCubic((p - u.appearAt) / 0.08) : 0;
-      const bob = k === 1 ? Math.sin(t * 1.3 + u.phase) * 0.07 : 0;
-      workScaleV.current.setScalar(Math.max(0.0001, k));
-      workPos.current.set(u.x, 0.45 + bob, u.z);
-      workQuat.current.setFromAxisAngle(UP.current, Math.sin(u.phase) * Math.PI);
-      workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
-      mesh.setMatrixAt(i, workMatrix.current);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-  });
+      // Epilogue handoff (Phase 11-refinement): the watch-fleet capsules
+      // dissolve as the district-topology structure rises — no generic
+      // glowing blobs lingering over the final frame.
+      const out = 1 - window01(p, [0.86, 0.93]);
+
+      for (let i = 0; i < FLEET_SPOTS.length; i++) {
+        const u = FLEET_SPOTS[i];
+        const k =
+          p >= u.appearAt ? easeOutCubic((p - u.appearAt) / 0.08) : 0;
+        const bob = k === 1 ? Math.sin(t * 1.3 + u.phase) * 0.07 : 0;
+        workScaleV.current.setScalar(Math.max(0.0001, k * out));
+        workPos.current.set(u.x, 0.45 + bob, u.z);
+        workQuat.current.setFromAxisAngle(UP.current, Math.sin(u.phase) * Math.PI);
+        workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
+        mesh.setMatrixAt(i, workMatrix.current);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    });
 
   return (
     <instancedMesh
@@ -352,6 +365,97 @@ function AwakeningFleet() {
         emissiveIntensity={0.25}
       />
     </instancedMesh>
+  );
+}
+
+// --- Epilogue: district topology -----------------------------------------
+// Replaces the old abstract capsule blobs with a structure that reads as
+// the twin itself: titanium infrastructure rings traced at real city
+// radii, a teal active-systems core, and radial survey spokes. Violet and
+// red are absent by contract — nothing here reasons, nothing bleeds.
+
+const RING_RADII = [16, 28, 40, 52];
+const SPOKE_COUNT = 12;
+
+function ringGeometry(radius: number): THREE.BufferGeometry {
+  const pts: number[] = [];
+  const N = 96;
+  for (let i = 0; i < N; i++) {
+    const a1 = (i / N) * Math.PI * 2;
+    const a2 = ((i + 1) / N) * Math.PI * 2;
+    pts.push(
+      Math.cos(a1) * radius,
+      Math.sin(a1) * radius,
+      Math.cos(a2) * radius,
+      Math.sin(a2) * radius,
+    );
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 2));
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+  return geo;
+}
+
+function EpilogueTopology() {
+  const group = useRef<THREE.Group>(null);
+  const coreRef = useRef<THREE.Mesh>(null);
+
+  const rings = useMemo(
+    () => RING_RADII.map((r) => ({ r, geo: ringGeometry(r) })),
+    [],
+  );
+  const spokes = useMemo(() => {
+    const pts: number[] = [];
+    for (let i = 0; i < SPOKE_COUNT; i++) {
+      const a = (i / SPOKE_COUNT) * Math.PI * 2;
+      pts.push(
+        Math.cos(a) * RING_RADII[0],
+        Math.sin(a) * RING_RADII[0],
+        Math.cos(a) * RING_RADII[RING_RADII.length - 1],
+        Math.sin(a) * RING_RADII[RING_RADII.length - 1],
+      );
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 2));
+    geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    return geo;
+  }, []);
+
+  useFrame(({ clock }) => {
+    const p = getLandingProgress();
+    const k = ramp(p, 0.87, 0.99);
+    if (group.current) {
+      group.current.scale.setScalar(Math.max(0.0001, k));
+      group.current.position.y = -(1 - k) * 3;
+    }
+    // The core breathes — the twin is awake (state, not decoration).
+    if (coreRef.current) {
+      const s = 1 + 0.1 * Math.sin(clock.elapsedTime * 1.8);
+      coreRef.current.scale.setScalar(s);
+    }
+  });
+
+  return (
+    <group ref={group}>
+      {rings.map(({ r, geo }) => (
+        <lineSegments key={r} geometry={geo} frustumCulled={false}>
+          <lineBasicMaterial color="#D6B45A" transparent opacity={0.34} depthWrite={false} />
+        </lineSegments>
+      ))}
+      <lineSegments geometry={spokes} frustumCulled={false}>
+        <lineBasicMaterial color="#4a5872" transparent opacity={0.22} depthWrite={false} />
+      </lineSegments>
+      <mesh ref={coreRef} position={[0, 0.6, 0]}>
+        <octahedronGeometry args={[1.1]} />
+        <meshStandardMaterial
+          color="#16F2D4"
+          emissive="#16F2D4"
+          emissiveIntensity={0.5}
+          roughness={0.3}
+          metalness={0.1}
+        />
+      </mesh>
+    </group>
   );
 }
 

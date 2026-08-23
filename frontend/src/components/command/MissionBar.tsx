@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { FeedStatus } from '@/hooks/useCommandFeed';
 import type { RunProgress } from '@/lib/api';
 import { useSessionStore } from '@/lib/twin/store';
+import AureonMark from '@/components/brand/AureonMark';
 
 /**
  * Top mission bar (Phase 10D) — run identity, sim clock, feed health.
@@ -37,7 +38,8 @@ export default function MissionBar({
     return (
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="font-display text-base font-semibold tracking-tight">
+          <span className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
+            <AureonMark size={18} />
             Aureon <span className="text-teal-core">·</span>{' '}
             <span className="hud-label align-middle text-[var(--color-text-secondary)]">
               Command
@@ -93,7 +95,8 @@ export default function MissionBar({
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
       <div className="flex items-baseline gap-3 min-w-0">
-        <span className="font-display text-base font-semibold tracking-tight">
+        <span className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
+          <AureonMark size={18} />
           Aureon <span className="text-teal-core">·</span>{' '}
           <span className="hud-label align-middle text-[var(--color-text-secondary)]">
             Command

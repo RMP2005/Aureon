@@ -142,6 +142,32 @@ body {
   background-clip: text;
 }
 
+/* ============================================================
+   SEMANTIC TEXT HIGHLIGHTS (Phase 11-refinement)
+   Keyword-level ink gradients. Never decorative: each class is
+   reserved for one class of meaning.
+   .hl-reason   → AI reasoning / prediction / decisions
+   .hl-evidence → measured / audited / validated facts
+   .hl-crit     → incidents / emergency / danger (sparing)
+   ============================================================ */
+.hl {
+  --hl-from: var(--color-ink-primary);
+  --hl-to: var(--color-teal-core);
+  background: linear-gradient(100deg, var(--hl-from) 20%, var(--hl-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hl-reason {
+  --hl-to: var(--color-violet-intel);
+}
+.hl-evidence {
+  --hl-to: var(--color-titanium);
+}
+.hl-crit {
+  --hl-to: var(--color-crit-red);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }

@@ -18,6 +18,8 @@ import { useCommandFeed } from '@/hooks/useCommandFeed';
 import { useReplayStore } from '@/lib/twin/replay';
 import { useSessionStore } from '@/lib/twin/store';
 import { requestIntroSweep } from '@/lib/twin/intro';
+import BootOverlay from '@/components/command/BootOverlay';
+import Hl from '@/components/brand/Hl';
 import { launchDemo } from '@/lib/api';
 
 /**
@@ -54,9 +56,11 @@ function CommandInner() {
 
   // Landing handoff (Phase 10F-1): arriving with ?intro=1 arms the camera
   // sweep before the twin mounts, so the descent reads as one gesture.
+  const [introArrival, setIntroArrival] = useState(false);
   useEffect(() => {
     if (searchParams.get('intro') === '1') {
       requestIntroSweep();
+      setIntroArrival(true);
     }
   }, [searchParams]);
 
@@ -121,6 +125,7 @@ function CommandInner() {
           replayStatus={replayStatus}
           onLoadReplay={() => runId && loadRecording(runId)}
           onExitReplay={stopReplay}
+          showBoot={introArrival}
         />
 
         {/* Right rail */}
@@ -177,12 +182,14 @@ function CenterInstrument({
   replayStatus,
   onLoadReplay,
   onExitReplay,
+  showBoot,
 }: {
   feed: ReturnType<typeof useCommandFeed>;
   inReplay: boolean;
   replayStatus: ReturnType<typeof useReplayStore.getState>['status'];
   onLoadReplay: () => void;
   onExitReplay: () => void;
+  showBoot: boolean;
 }) {
   const replayError = useReplayStore((s) => s.error);
   const router = useRouter();
@@ -207,6 +214,9 @@ function CenterInstrument({
     <div className="relative min-h-0 overflow-hidden rounded-lg border border-hairline">
       <TwinCanvas />
 
+      {/* Landing → operations boot (Phase 11-refinement, ≤2s entry) */}
+      {showBoot && <BootOverlay />}
+
       {/* Replay session controls */}
       {inReplay && (
         <div className="absolute left-3 top-3 z-10">
@@ -223,9 +233,10 @@ function CenterInstrument({
         <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit max-w-xl rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
           <p className="hud-stamp text-[var(--color-text-secondary)]">NO ACTIVE RUN</p>
           <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-text-muted)]">
-            Launch a curated showcase — a city crisis unfolds live while Aureon
-            dispatches autonomously. Every decision is logged with explainable
-            evidence.
+            Launch a curated showcase — a city{' '}
+            <Hl kind="crit">crisis</Hl> unfolds live while Aureon{' '}
+            <Hl kind="reason">decides</Hl> autonomously. Every decision is
+            logged with explainable <Hl kind="evidence">evidence</Hl>.
           </p>
           <div className="mt-2 flex items-center justify-center gap-2">
             <button

@@ -19,12 +19,18 @@ const TIER_STYLE: Record<RoadTier, { opacity: number; tint: number }> = {
 
 function TierLines({ tier }: { tier: RoadTier }) {
   const geometry = useMemo(() => {
+    const buffer = getRoadBuffer(tier);
+    // Empty network data → no geometry at all. Mounting a zero-vertex
+    // position attribute makes Three.js compute a NaN bounding sphere.
+    if (!buffer) return null;
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(getRoadBuffer(tier), 2));
+    geo.setAttribute('position', new THREE.BufferAttribute(buffer, 2));
     // Z-up data → lie flat onto XZ plane
     geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
     return geo;
   }, [tier]);
+
+  if (!geometry) return null;
 
   const style = TIER_STYLE[tier];
   return (

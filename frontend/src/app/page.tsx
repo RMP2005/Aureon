@@ -6,6 +6,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import LandingCanvas from '@/components/landing/LandingCanvas';
 import ActOverlays from '@/components/landing/ActOverlays';
+import AureonMark from '@/components/brand/AureonMark';
+import LandingHud from '@/components/landing/LandingHud';
 import { setLandingProgress } from '@/lib/landing/progress';
 import { useCinematicAudio } from '@/hooks/useCinematicAudio';
 
@@ -94,7 +96,8 @@ function JourneyLanding() {
         </div>
 
         {/* Wordmark */}
-        <div className="pointer-events-none absolute left-6 top-6 z-20 select-none">
+        <div className="pointer-events-none absolute left-6 top-6 z-20 flex select-none items-center gap-2.5">
+          <AureonMark size={22} />
           <p className="font-display text-lg font-semibold tracking-tight">
             Aureon <span className="text-teal-core">/</span>
             <span className="hud-label ml-2 align-middle text-[var(--color-text-muted)]">
@@ -102,6 +105,9 @@ function JourneyLanding() {
             </span>
           </p>
         </div>
+
+        {/* Scientific instrument overlay (Phase 11-refinement) */}
+        <LandingHud />
 
         {/* Opening splash — dissolves into Act I */}
         <Splash />
@@ -152,7 +158,7 @@ function Splash() {
       ref={ref}
       className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
     >
-      <h1 className="font-display text-[clamp(3rem,9vw,7rem)] font-bold tracking-tight text-center leading-none">
+      <h1 className="font-display text-[clamp(2.6rem,8.5vw,6.5rem)] font-bold tracking-tight text-center leading-none break-words max-w-full px-4">
         Aureon<span className="text-gradient">.</span>
       </h1>
     </div>
@@ -176,7 +182,7 @@ function StaticLanding() {
           <LandingCanvas />
         </div>
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6">
-          <p className="font-display text-[clamp(2.5rem,7vw,5rem)] font-bold tracking-tight">
+          <p className="font-display text-[clamp(2.2rem,6.5vw,4.5rem)] font-bold tracking-tight break-words">
             Aureon<span className="text-gradient">.</span>
           </p>
           <p className="mt-4 max-w-xl text-[var(--color-text-secondary)]">
