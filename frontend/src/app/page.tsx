@@ -183,10 +183,10 @@ function StaticLanding() {
             Bengaluru with explainable emergency-dispatch intelligence.
           </p>
           <Link
-            href="/twin"
+            href="/command?intro=1"
             className="pointer-events-auto mt-8 px-7 py-3 rounded-lg bg-teal-core text-black font-semibold"
           >
-            Launch Live Twin →
+            Enter Command Center →
           </Link>
         </div>
       </div>

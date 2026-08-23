@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import TwinCanvas from '@/components/twin/TwinCanvas';
 import MissionBar from '@/components/command/MissionBar';
@@ -10,10 +11,13 @@ import FleetPanel from '@/components/command/FleetPanel';
 import HospitalPanel from '@/components/command/HospitalPanel';
 import DecisionLedger from '@/components/command/DecisionLedger';
 import EntityInspector from '@/components/command/EntityInspector';
+import MissionDebrief from '@/components/command/MissionDebrief';
 import TimelineShell from '@/components/command/TimelineShell';
 import MetricsStrip from '@/components/command/MetricsStrip';
 import { useCommandFeed } from '@/hooks/useCommandFeed';
 import { useReplayStore } from '@/lib/twin/replay';
+import { requestIntroSweep } from '@/lib/twin/intro';
+import { launchDemo } from '@/lib/api';
 
 /**
  * Command Center (Phase 10D).
@@ -47,6 +51,14 @@ function CommandInner() {
     }
   }, [searchParams]);
 
+  // Landing handoff (Phase 10F-1): arriving with ?intro=1 arms the camera
+  // sweep before the twin mounts, so the descent reads as one gesture.
+  useEffect(() => {
+    if (searchParams.get('intro') === '1') {
+      requestIntroSweep();
+    }
+  }, [searchParams]);
+
   const feed = useCommandFeed(runId);
 
   const replayStatus = useReplayStore((s) => s.status);
@@ -65,6 +77,14 @@ function CommandInner() {
   // Panels read the replay frame while scrubbing — identical RunLiveState
   // shape as live telemetry, so no panel knows which source it renders.
   const panelState = inReplay ? replayFrame : feed.liveState;
+
+  // Persisted decision evidence, indexed by incident (Phase 10F-1) — powers
+  // "Explain This Decision" for completed incidents after run completion.
+  const dispatchIndex = useMemo(() => {
+    const log = feed.result?.dispatch_log_sample ?? [];
+    if (log.length === 0) return null;
+    return new Map(log.map((e) => [e.incident_id, e]));
+  }, [feed.result]);
 
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-void">
@@ -86,8 +106,12 @@ function CommandInner() {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[19rem_1fr_20rem] grid-rows-[minmax(0,1fr)_auto] gap-2 p-2">
-        {/* Left rail */}
-        <IncidentQueueColumn liveState={panelState} />
+        {/* Left rail — debrief chapters take over during replay */}
+        <IncidentQueueColumn
+          liveState={panelState}
+          inReplay={inReplay}
+          replayRecording={replayRecording}
+        />
 
         {/* Center instrument */}
         <CenterInstrument
@@ -99,7 +123,7 @@ function CommandInner() {
         />
 
         {/* Right rail */}
-        <RightRail liveState={panelState} />
+        <RightRail liveState={panelState} dispatchIndex={dispatchIndex} />
 
         {/* Timeline spans center+right under the rails */}
         <div className="col-span-2 col-start-2 min-h-0 rounded-lg border border-hairline bg-panel-1/80">
@@ -121,11 +145,23 @@ function CommandInner() {
   );
 }
 
-function IncidentQueueColumn({ liveState }: { liveState: ReturnType<typeof useCommandFeed>['liveState'] }) {
+function IncidentQueueColumn({
+  liveState,
+  inReplay,
+  replayRecording,
+}: {
+  liveState: ReturnType<typeof useCommandFeed>['liveState'];
+  inReplay: boolean;
+  replayRecording: ReturnType<typeof useReplayStore.getState>['recording'];
+}) {
   return (
     <div className="flex min-h-0 flex-col gap-2">
       <div className="min-h-0 flex-1">
-        <IncidentQueue liveState={liveState} />
+        {inReplay ? (
+          <MissionDebrief recording={replayRecording} />
+        ) : (
+          <IncidentQueue liveState={liveState} />
+        )}
       </div>
       <div className="min-h-0 flex-[2]">
         <DecisionLedger />
@@ -148,7 +184,20 @@ function CenterInstrument({
   onExitReplay: () => void;
 }) {
   const replayError = useReplayStore((s) => s.error);
+  const router = useRouter();
+  const [demoLaunching, setDemoLaunching] = useState(false);
   const standby = !feed.liveState && !inReplay && feed.status !== 'ended';
+
+  // One-click showcase from standby (Phase 10F-1): flagship demo, no config.
+  const startShowcase = async () => {
+    setDemoLaunching(true);
+    try {
+      const res = await launchDemo(null); // server resolves its flagship
+      router.replace(`/command?run=${res.data.run_id}`);
+    } catch {
+      setDemoLaunching(false);
+    }
+  };
 
   return (
     <div className="relative min-h-0 overflow-hidden rounded-lg border border-hairline">
@@ -169,12 +218,21 @@ function CenterInstrument({
       {standby && (
         <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md border border-hairline-strong bg-panel-1/90 px-5 py-3 text-center backdrop-blur">
           <p className="hud-stamp text-[var(--color-text-secondary)]">NO ACTIVE RUN</p>
-          <Link
-            href="/simulation"
-            className="mt-2 inline-block rounded-md bg-teal-core px-4 py-1.5 text-xs font-semibold text-black hover:brightness-110 transition-all"
-          >
-            Launch a Simulation →
-          </Link>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <button
+              onClick={startShowcase}
+              disabled={demoLaunching}
+              className="inline-block rounded-md bg-teal-core px-4 py-1.5 text-xs font-semibold text-black hover:brightness-110 transition-all disabled:opacity-50"
+            >
+              {demoLaunching ? 'LAUNCHING DEMO…' : '▶ START SHOWCASE DEMO'}
+            </button>
+            <Link
+              href="/simulation"
+              className="inline-block rounded-md border border-hairline-strong px-4 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+            >
+              Configure a Run →
+            </Link>
+          </div>
         </div>
       )}
 
@@ -199,8 +257,10 @@ function CenterInstrument({
 
 function RightRail({
   liveState,
+  dispatchIndex,
 }: {
   liveState: ReturnType<typeof useCommandFeed>['liveState'];
+  dispatchIndex: Map<string, import('@/lib/api').DispatchLogEntry> | null;
 }) {
   return (
     <div className="flex min-h-0 flex-col gap-2">
@@ -217,7 +277,7 @@ function RightRail({
           </h2>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <EntityInspector />
+          <EntityInspector dispatchIndex={dispatchIndex} />
         </div>
       </section>
     </div>

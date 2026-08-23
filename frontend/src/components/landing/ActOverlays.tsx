@@ -45,10 +45,10 @@ export default function ActOverlays() {
               {isLast && (
                 <div className="pointer-events-auto mt-10 flex gap-4 justify-center">
                   <Link
-                    href="/twin"
+                    href="/command?intro=1"
                     className="px-7 py-3 rounded-lg bg-teal-core text-black font-semibold hover:brightness-110 hover:shadow-[0_0_24px_rgba(22,242,212,0.3)] transition-all"
                   >
-                    Launch Live Twin →
+                    Enter Command Center →
                   </Link>
                   <Link
                     href="/simulation"

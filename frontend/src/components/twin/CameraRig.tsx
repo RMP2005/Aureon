@@ -8,6 +8,14 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useTwinStore } from '@/lib/twin/store';
 import { getLiveBuffer } from '@/lib/twin/live-buffer';
 import { HOSPITALS } from '@/lib/twin/city-data';
+import { consumeIntroSweep } from '@/lib/twin/intro';
+
+/** Operational camera default (TwinCanvas initial position). */
+const OPERATIONAL_POSITION = new THREE.Vector3(0, 95, 78);
+const OPERATIONAL_TARGET = new THREE.Vector3(0, 0, 0);
+/** Landing journey's final hero framing — continuity handoff start. */
+const LANDING_HERO_POSITION = new THREE.Vector3(0, 76, 100);
+const INTRO_SWEEP_SEC = 2.4;
 
 /**
  * Camera rig (Phase 10B) — blueprint camera-stability rules:
@@ -15,17 +23,22 @@ import { HOSPITALS } from '@/lib/twin/city-data';
  *  - Polar clamp keeps the horizon honest; you can never go under the map.
  *  - Selection focus is a one-shot eased glide, cancelled instantly by any
  *    user input — the operator always wins.
+ * Phase 10F-1: on arrival from the landing journey, a one-shot intro sweep
+ * descends from the landing's hero framing into operational view.
  */
 export default function CameraRig() {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const selection = useTwinStore((s) => s.selection);
 
-  // One-shot selection focus tween state
+  // One-shot tween state (intro sweep + selection focus)
   const tween = useRef<{
     active: boolean;
     t: number;
-    from: THREE.Vector3;
-    to: THREE.Vector3;
+    duration: number;
+    targetFrom: THREE.Vector3;
+    targetTo: THREE.Vector3;
+    posFrom?: THREE.Vector3;
+    posTo?: THREE.Vector3;
   } | null>(null);
 
   useEffect(() => {
@@ -61,8 +74,9 @@ export default function CameraRig() {
     tween.current = {
       active: true,
       t: 0,
-      from: controls.target.clone(),
-      to: new THREE.Vector3(x, 0, z),
+      duration: 0.6,
+      targetFrom: controls.target.clone(),
+      targetTo: new THREE.Vector3(x, 0, z),
     };
   }, [selection]);
 
@@ -82,12 +96,19 @@ export default function CameraRig() {
     const controls = controlsRef.current;
     if (!tw?.active || !controls) return;
 
-    tw.t = Math.min(1, tw.t + dt / 0.6);
-    // easeOutCubic
-    const k = 1 - Math.pow(1 - tw.t, 3);
-    controls.target.lerpVectors(tw.from, tw.to, k);
+    tw.t = Math.min(1, tw.t + dt / tw.duration);
+    // easeInOutCubic — gentle departure, gentle arrival
+    const k =
+      tw.t < 0.5
+        ? 4 * tw.t * tw.t * tw.t
+        : 1 - Math.pow(-2 * tw.t + 2, 3) / 2;
+    controls.target.lerpVectors(tw.targetFrom, tw.targetTo, k);
 
-    // Glide only pans; zoom/rotation stay under user control
+    // Intro sweep also glides camera position; selection focus only pans.
+    if (tw.posFrom && tw.posTo && controls.object) {
+      controls.object.position.lerpVectors(tw.posFrom, tw.posTo, k);
+    }
+
     if (tw.t >= 1) tween.current = null;
   });
 

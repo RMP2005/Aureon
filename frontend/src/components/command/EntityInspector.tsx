@@ -1,15 +1,25 @@
 'use client';
 
+import { useState } from 'react';
 import { useTwinStore } from '@/lib/twin/store';
 import { getLiveBuffer } from '@/lib/twin/live-buffer';
 import { HOSPITALS } from '@/lib/twin/city-data';
+import type { DispatchLogEntry } from '@/lib/api';
+import DecisionExplain, { ExplainButton } from './DecisionExplain';
 import { EmptyNote, OccupancyBar, StatusChip } from './primitives';
 
 /**
  * Entity Inspector (Phase 10D) — readout for the current scene selection.
- * Every field is a live or persisted engine value.
+ * Every field is a live or persisted engine value. Phase 10F-1 adds the
+ * "Explain This Decision" interaction for dispatched incidents when the
+ * run's persisted decision evidence is available.
  */
-export default function EntityInspector() {
+export default function EntityInspector({
+  dispatchIndex,
+}: {
+  /** incident_id → persisted dispatch entry with decision evidence. */
+  dispatchIndex?: Map<string, DispatchLogEntry> | null;
+}) {
   const selection = useTwinStore((s) => s.selection);
 
   if (!selection) {
@@ -37,19 +47,7 @@ export default function EntityInspector() {
   }
 
   if (selection.kind === 'incident') {
-    const inc = buffer.incidents.find((i) => i.id === selection.id);
-    if (!inc) return <EmptyNote>Incident no longer active.</EmptyNote>;
-    return (
-      <div className="space-y-3 p-3">
-        <Header
-          title={inc.category.replace(/_/g, ' ').toUpperCase()}
-          sub={inc.id}
-          tone="text-crit-red"
-        />
-        <Row label="Severity" value={<StatusChip value={inc.severity} />} />
-        <Row label="Required capability" value={inc.requiredCapability.toUpperCase()} mono />
-      </div>
-    );
+    return <IncidentRecord id={selection.id} dispatchIndex={dispatchIndex} />;
   }
 
   const h = HOSPITALS.find((x) => x.id === selection.id);
@@ -60,6 +58,89 @@ export default function EntityInspector() {
       <p className="hud-stamp !text-[9px] text-[var(--color-text-muted)]">
         OCCUPANCY TELEMETRY FLOWS WITH THE LIVE RUN
       </p>
+    </div>
+  );
+}
+
+function IncidentRecord({
+  id,
+  dispatchIndex,
+}: {
+  id: string;
+  dispatchIndex?: Map<string, DispatchLogEntry> | null;
+}) {
+  const [explainOpen, setExplainOpen] = useState(false);
+  const inc = getLiveBuffer().incidents.find((i) => i.id === id);
+
+  if (!inc) {
+    // Completed incidents live on in the persisted dispatch evidence.
+    const entry = dispatchIndex?.get(id);
+    if (entry) {
+      return (
+        <div className="space-y-3 p-3">
+          <Header
+            title={entry.category.replace(/_/g, ' ').toUpperCase()}
+            sub={id}
+            tone="text-violet-intel"
+          />
+          <Row label="Status" value={<StatusChip value="closed" />} />
+          <Row label="Unit" value={`${entry.callsign} · ${entry.ambulance_id}`} mono />
+          <Row label="Scene ETA" value={`${(entry.scene_eta_sec / 60).toFixed(1)} min`} mono />
+          <div>
+            <ExplainButton
+              disabled={!entry.decision}
+              open={explainOpen}
+              onClick={() => setExplainOpen((o) => !o)}
+            />
+          </div>
+          {explainOpen && entry.decision && (
+            <DecisionExplain
+              compact
+              details={entry.decision}
+              context={{
+                callsign: entry.callsign,
+                incidentId: id,
+                rationale: entry.rationale,
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+    return <EmptyNote>Incident no longer active.</EmptyNote>;
+  }
+
+  const hasEvidence = Boolean(dispatchIndex?.get(id)?.decision);
+  return (
+    <div className="space-y-3 p-3">
+      <Header
+        title={inc.category.replace(/_/g, ' ').toUpperCase()}
+        sub={inc.id}
+        tone="text-crit-red"
+      />
+      <Row label="Severity" value={<StatusChip value={inc.severity} />} />
+      <Row label="Required capability" value={inc.requiredCapability.toUpperCase()} mono />
+      {inc.assignedAmbulance && (
+        <Row label="Assigned unit" value={inc.assignedAmbulance} mono />
+      )}
+      <div>
+        <ExplainButton
+          disabled={!hasEvidence}
+          open={hasEvidence && explainOpen}
+          onClick={() => setExplainOpen((o) => !o)}
+        />
+      </div>
+      {hasEvidence && explainOpen && dispatchIndex?.get(id)?.decision && (
+        <DecisionExplain
+          compact
+          details={dispatchIndex.get(id)!.decision!}
+          context={{
+            callsign: dispatchIndex.get(id)?.callsign,
+            incidentId: id,
+            rationale: dispatchIndex.get(id)?.rationale,
+          }}
+        />
+      )}
     </div>
   );
 }

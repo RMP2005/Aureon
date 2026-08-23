@@ -56,10 +56,19 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
 
 
 def get_default_connection() -> sqlite3.Connection:
-    """Get the module-level default connection, creating one if needed."""
+    """Get the module-level default connection, creating one if needed.
+
+    The schema is applied idempotently (CREATE TABLE IF NOT EXISTS), so any
+    consumer — API server, background worker thread, or library caller —
+    gets a usable store even if init_db() never ran (Phase 10F-1 fix: a
+    fresh or restored DB file previously crashed persistence with
+    "no such table").
+    """
     global _default_conn
     if _default_conn is None:
         _default_conn = get_connection()
+        _default_conn.executescript(_SCHEMA_SQL)
+        _default_conn.commit()
     return _default_conn
 
 

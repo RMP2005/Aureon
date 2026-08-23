@@ -29,6 +29,7 @@ export interface ActiveIncident {
   severity: string;
   category: string;
   requiredCapability: string;
+  assignedAmbulance: string | null;
 }
 
 interface LiveBuffer {
@@ -114,6 +115,7 @@ export function ingestLiveState(state: RunLiveState): void {
       severity: inc.severity,
       category: inc.category,
       requiredCapability: inc.required_capability,
+      assignedAmbulance: inc.assigned_ambulance,
     };
   });
 

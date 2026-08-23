@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.services.demo_library import get_demo, list_demos
 from src.services.run_recorder import RunRecorder
 from src.services.run_store import RunStore
 from src.services.scenario_library import (
@@ -285,6 +286,27 @@ class SimulationService:
     def get_scenarios(self) -> list[dict[str, Any]]:
         """Expose the Scenario Library registry for UI selection."""
         return list_scenarios()
+
+    def get_demos(self) -> list[dict[str, Any]]:
+        """Expose the Demo Library registry for one-click showcase runs."""
+        return list_demos()
+
+    def launch_demo(self, key: str | None) -> dict[str, Any]:
+        """Launch a curated demo run with its exact scripted parameters.
+
+        Deterministic: same script, same seed, same world. Returns the
+        background-run payload ({run_id, status}) plus the demo identity.
+        """
+        demo = get_demo(key)
+        if demo is None:
+            raise KeyError(f"Unknown demo '{key}'")
+        params = dict(demo["run"])
+        # Demo scripts speak the API vocabulary; translate to service kwargs.
+        if "strategy" in params:
+            params["strategy_name"] = params.pop("strategy")
+        result = self.start_simulation_background(**params)
+        result["demo"] = {"key": demo["key"], "name": demo["name"]}
+        return result
 
     def start_simulation_background(
         self,

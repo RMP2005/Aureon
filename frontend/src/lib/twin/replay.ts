@@ -32,6 +32,8 @@ interface ReplayStore {
   speed: number;
   activeEventId: string | null;
   error: string | null;
+  /** Guided debrief: camera follows entities as the playhead crosses events. */
+  guided: boolean;
 
   loadRecording: (runId: string) => Promise<void>;
   play: () => void;
@@ -40,6 +42,7 @@ interface ReplayStore {
   seek: (sec: number) => void;
   cycleSpeed: () => void;
   seekToEvent: (event: ReplayEvent) => void;
+  toggleGuided: () => void;
   stop: () => void;
 }
 
@@ -84,6 +87,23 @@ export const useReplayStore = create<ReplayStore>((set, get) => {
     useLedgerStore.getState().append(due.map(toLedgerEvent));
     for (const e of due) revealedIds.add(e.id);
     highestRevealedSec = Math.max(highestRevealedSec, t);
+
+    // Guided debrief (Phase 10F-1): while playing, the camera eases to the
+    // entity of the most recent crossed event. Operator input still wins —
+    // OrbitControls 'start' cancels any in-flight focus tween.
+    if (get().guided && get().status === 'playing') {
+      const focusable = due.find(
+        (e) => e.entity_kind === 'ambulance' || e.entity_kind === 'incident',
+      );
+      if (focusable) {
+        useTwinStore.getState().focus({
+          kind: focusable.entity_kind,
+          id: focusable.entity_id,
+        });
+        set({ activeEventId: focusable.id });
+        useLedgerStore.getState().setHighlight(focusable.id);
+      }
+    }
   };
 
   const tick = (now: number) => {
@@ -124,6 +144,7 @@ export const useReplayStore = create<ReplayStore>((set, get) => {
     speed: 2,
     activeEventId: null,
     error: null,
+    guided: true,
 
     loadRecording: async (runId) => {
       cancelLoop();
@@ -207,6 +228,8 @@ export const useReplayStore = create<ReplayStore>((set, get) => {
       useLedgerStore.getState().setHighlight(event.id);
     },
 
+    toggleGuided: () => set((s) => ({ guided: !s.guided })),
+
     stop: () => {
       cancelLoop();
       set({ status: 'idle', currentFrame: null, activeEventId: null });
@@ -243,7 +266,12 @@ function toLedgerEvent(e: ReplayEvent): Parameters<
 >[0][number] {
   return {
     id: e.id,
-    kind: e.kind === 'ADMISSION' ? 'LOG' : e.kind,
+    kind:
+      e.kind === 'ADMISSION'
+        ? 'LOG'
+        : e.kind === 'RESOLVED'
+          ? 'RESOLVED'
+          : e.kind,
     severity: e.severity ?? undefined,
     text: e.text,
     simSec: e.sim_time_sec,

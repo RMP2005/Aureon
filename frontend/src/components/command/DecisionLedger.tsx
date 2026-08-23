@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLedgerStore, type LedgerEvent } from '@/lib/command/ledger';
-import { parseDecision } from '@/lib/command/rationale-parser';
+import DecisionExplain, { ExplainButton } from './DecisionExplain';
 import { EmptyNote, PanelFrame } from './primitives';
 
 const KIND_STYLE: Record<string, { dot: string; label: string }> = {
@@ -94,86 +94,22 @@ function LedgerRow({
             {event.severity && ` · ${event.severity.toUpperCase()}`}
           </p>
           {hasEvidence && (
-            <button
+            <ExplainButton
+              disabled={!hasEvidence}
+              open={open}
+              label="[ EXPLAIN ]"
               onClick={() => setOpen((o) => !o)}
-              className="hud-stamp !text-[9px] text-violet-intel hover:text-[var(--color-text-primary)] transition-colors"
-            >
-              {open ? '[ HIDE EVIDENCE ]' : '[ EVIDENCE ]'}
-            </button>
+            />
           )}
         </div>
-        {hasEvidence && open && <EvidenceCard details={event.details!} />}
+        {hasEvidence && open && (
+          <DecisionExplain
+            compact
+            details={event.details!}
+            context={{ rationale: event.text }}
+          />
+        )}
       </div>
-    </div>
-  );
-}
-
-/**
- * Structured evidence — every line is strategy-published metadata rendered
- * verbatim; the parser only formats, never invents.
- */
-function EvidenceCard({ details }: { details: NonNullable<LedgerEvent['details']> }) {
-  const parsed = parseDecision(details);
-
-  return (
-    <div className="mt-1.5 rounded border border-hairline bg-panel-1/60 p-2 space-y-1">
-      {(parsed.mode || parsed.coverageScore !== undefined) && (
-        <div className="flex items-center gap-2">
-          {parsed.mode && (
-            <span className="hud-stamp !text-[9px] rounded-sm bg-violet-intel/15 px-1.5 py-0.5 text-violet-intel">
-              MODE · {parsed.mode.replace(/_/g, ' ').toUpperCase()}
-            </span>
-          )}
-          {parsed.coverageScore !== undefined && (
-            <span className="hud-stamp !text-[9px] text-[var(--color-text-muted)]">
-              COVERAGE {parsed.coverageScore.toFixed(2)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {parsed.candidateRows.length > 0 && (
-        <EvidenceSection title="UNITS EVALUATED" rows={parsed.candidateRows} />
-      )}
-      {parsed.overrideReason && (
-        <p className="text-[11px] leading-snug text-amber-warn">
-          OVERRIDE — {parsed.overrideReason}
-        </p>
-      )}
-      {parsed.genericRows.length > 0 && (
-        <EvidenceSection title="CONTEXT" rows={parsed.genericRows} />
-      )}
-    </div>
-  );
-}
-
-function EvidenceSection({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { label: string; value: string; accent?: boolean }[];
-}) {
-  return (
-    <div>
-      <p className="hud-stamp !text-[8px] text-[var(--color-text-muted)]">{title}</p>
-      <ul className="mt-0.5 space-y-0.5">
-        {rows.map((r, i) => (
-          <li
-            key={`${r.label}-${i}`}
-            className={`flex items-baseline justify-between gap-2 text-[11px] leading-tight ${
-              r.accent ? 'text-teal-core' : 'text-[var(--color-text-secondary)]'
-            }`}
-          >
-            <span className="hud-stamp !text-[8px] shrink-0 text-[var(--color-text-muted)]">
-              {r.label}
-            </span>
-            <span className={`font-mono tabular text-right ${r.accent ? 'font-semibold' : ''}`}>
-              {r.value}
-            </span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

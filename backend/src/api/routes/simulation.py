@@ -44,6 +44,35 @@ async def list_scenarios() -> ResponseEnvelope:
     return ResponseEnvelope(data=get_simulation_service().get_scenarios())
 
 
+@router.get("/demos", response_model=ResponseEnvelope)
+async def list_demos() -> ResponseEnvelope:
+    """Expose the Demo Library: curated, deterministic showcase runs."""
+    return ResponseEnvelope(data=get_simulation_service().get_demos())
+
+
+@router.post("/demos/{key}/launch", response_model=ResponseEnvelope)
+async def launch_demo(key: str) -> ResponseEnvelope:
+    """Launch a curated demo run with scripted, deterministic parameters.
+
+    ``key="default"`` resolves the server's flagship demo.
+    """
+    svc = get_simulation_service()
+    try:
+        result = svc.launch_demo(None if key == "default" else key)
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown demo '{key}'",
+        )
+    except Exception as e:
+        logger.exception("Demo launch failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Demo launch failed",
+        ) from e
+    return ResponseEnvelope(data=result)
+
+
 @router.get("/{run_id}/status", response_model=ResponseEnvelope)
 async def get_run_status(run_id: str) -> ResponseEnvelope:
     """Get live progress status of a simulation run."""

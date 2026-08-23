@@ -38,6 +38,7 @@ class RunRecorder:
 
         self._last_sample_sec = float("-inf")
         self._seen_incident_ids: set[str] = set()
+        self._seen_completed_ids: set[str] = set()
         # hospital_id -> (occupied_er_beds, occupied_icu_beds)
         self._prev_hospital_loads: dict[str, tuple[int, int]] = {}
         self._dispatch_log_len = 0
@@ -62,8 +63,31 @@ class RunRecorder:
                 entity_kind="ambulance",
                 entity_id=entry["ambulance_id"],
                 details=entry.get("decision"),
+                incident_id=entry.get("incident_id"),
             )
         self._dispatch_log_len = len(engine.dispatch_log)
+
+        # RESOLVED — incidents that left the active set as completed.
+        # The outcome fields are the engine's own measurements.
+        for inc in engine.completed_incidents:
+            if inc.id in self._seen_completed_ids:
+                continue
+            self._seen_completed_ids.add(inc.id)
+            rt = inc.response_time_seconds
+            outcome = (
+                f"response {rt / 60:.1f} min" if rt is not None else "response time n/a"
+            )
+            if not inc.capability_matched:
+                outcome += " · capability gap"
+            self._emit(
+                kind="RESOLVED",
+                sim_time_sec=sim_t,
+                text=f"{inc.id} closed · {outcome}",
+                severity=inc.severity.value,
+                entity_kind="incident",
+                entity_id=inc.id,
+                incident_id=inc.id,
+            )
 
         # INCIDENT — first tick an incident appears in the active set.
         for inc in engine.active_incidents.values():
@@ -80,6 +104,7 @@ class RunRecorder:
                 severity=inc.severity.value,
                 entity_kind="incident",
                 entity_id=inc.id,
+                incident_id=inc.id,
             )
 
         # ADMISSION — ER/ICU occupancy increases vs the previous tick.
@@ -146,6 +171,7 @@ class RunRecorder:
         entity_kind: str,
         entity_id: str,
         details: dict[str, Any] | None = None,
+        incident_id: str | None = None,
     ) -> None:
         self._seq += 1
         event: dict[str, Any] = {
@@ -161,6 +187,9 @@ class RunRecorder:
             # Structured decision evidence (Phase 10E-2) — candidate scoring
             # and override reasons ride along with DISPATCH journal entries.
             event["details"] = details
+        if incident_id:
+            # Incident linkage (Phase 10F-1) — powers debrief storytelling.
+            event["incident_id"] = incident_id
         self._events.append(event)
 
     def to_recording(

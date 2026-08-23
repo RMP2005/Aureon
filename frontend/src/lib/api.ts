@@ -220,7 +220,7 @@ export interface RunSummary {
 /** Evidence-layer event journal entry (Phase 10E-1). */
 export interface ReplayEvent {
   id: string;
-  kind: 'INCIDENT' | 'DISPATCH' | 'ADMISSION';
+  kind: 'INCIDENT' | 'DISPATCH' | 'ADMISSION' | 'RESOLVED';
   sim_time_sec: number;
   text: string;
   severity: string | null;
@@ -228,6 +228,8 @@ export interface ReplayEvent {
   entity_id: string;
   /** Structured decision evidence on DISPATCH events (Phase 10E-2). */
   details?: DispatchDecisionDetails | null;
+  /** Incident linkage for debrief storytelling (Phase 10F-1). */
+  incident_id?: string | null;
 }
 
 /**
@@ -295,6 +297,42 @@ export interface ScenarioInfo {
 
 export async function listScenarios(): Promise<ApiResponse<ScenarioInfo[]>> {
   return apiFetch<ScenarioInfo[]>('/simulation/scenarios');
+}
+
+/** Demo Library registry entry — GET /simulation/demos (Phase 10F-1). */
+export interface DemoInfo {
+  key: string;
+  name: string;
+  logline: string;
+  description: string;
+  run: {
+    strategy: string;
+    scenario: string;
+    duration_minutes: number;
+    incident_rate_per_hour: number;
+    seed: number;
+    wall_clock_factor: number;
+  };
+}
+
+export async function listDemos(): Promise<ApiResponse<DemoInfo[]>> {
+  return apiFetch<DemoInfo[]>('/simulation/demos');
+}
+
+export interface DemoLaunchResult {
+  run_id: string;
+  status: string;
+  demo: { key: string; name: string };
+}
+
+export async function launchDemo(
+  /** Null resolves the server's flagship demo. */
+  key: string | null,
+): Promise<ApiResponse<DemoLaunchResult>> {
+  return apiFetch<DemoLaunchResult>(
+    key ? `/simulation/demos/${key}/launch` : '/simulation/demos/default/launch',
+    { method: 'POST' },
+  );
 }
 
 export async function compareStrategies(params: {

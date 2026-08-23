@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import MetricsPanel from '@/components/MetricsPanel';
@@ -9,6 +10,8 @@ import {
   runSimulation,
   getRunById,
   listScenarios,
+  listDemos,
+  launchDemo,
   type ScenarioInfo,
   type SimulationRunResult,
 } from '@/lib/api';
@@ -21,6 +24,7 @@ const formatTime = (seconds: number) => {
 };
 
 export default function SimulationPage() {
+  const router = useRouter();
   const [strategy, setStrategy] = useState('aureon');
   const [duration, setDuration] = useState(30);
   const [rate, setRate] = useState(12);
@@ -28,6 +32,7 @@ export default function SimulationPage() {
   const [scenario, setScenario] = useState('normal_operations');
   const [result, setResult] = useState<SimulationRunResult | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [demoKey, setDemoKey] = useState<string | null>(null);
 
   const [runId, setRunId] = useState<string | null>(null);
 
@@ -38,6 +43,30 @@ export default function SimulationPage() {
     staleTime: 5 * 60_000,
   });
   const scenarios: ScenarioInfo[] = scenariosQuery.data?.data ?? [];
+
+  // Demo Library — curated deterministic showcase runs (Phase 10F-1).
+  const demosQuery = useQuery({
+    queryKey: ['demos'],
+    queryFn: listDemos,
+    staleTime: 5 * 60_000,
+  });
+  const demos = demosQuery.data?.data ?? [];
+
+  const launchCuratedDemo = useCallback(
+    async (key: string) => {
+      setLaunchError(null);
+      setDemoKey(key);
+      try {
+        const res = await launchDemo(key);
+        // Hand the run to the Command Center with camera continuity.
+        router.push(`/command?run=${res.data.run_id}&intro=1`);
+      } catch (e: unknown) {
+        setDemoKey(null);
+        setLaunchError(e instanceof Error ? e.message : 'Demo launch failed');
+      }
+    },
+    [router],
+  );
 
   const handleCompleted = useCallback((id: string) => {
     getRunById(id)
@@ -87,6 +116,54 @@ export default function SimulationPage() {
       <Navbar />
       <main className="pt-28 px-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Simulation</h1>
+
+        {/* Demo Mode — one-click curated showcase runs */}
+        {demos.length > 0 && (
+          <div className="glass-panel rounded-2xl p-6 mb-6 border-teal-core/20">
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <h2 className="text-lg font-semibold">Demo Mode</h2>
+              <span className="hud-stamp !text-[9px] text-[var(--color-text-muted)]">
+                DETERMINISTIC · REAL ENGINE · AUTO-PACED
+              </span>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+              Fully scripted live missions — fixed seeds over the real
+              simulation engine, paced for viewing. One click, no
+              configuration.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {demos.map((d) => (
+                <button
+                  key={d.key}
+                  onClick={() => launchCuratedDemo(d.key)}
+                  disabled={demoKey !== null}
+                  className={`rounded-xl border p-3.5 text-left transition-all duration-200 disabled:opacity-50 ${
+                    demoKey === d.key
+                      ? 'border-teal-core bg-teal-core/10'
+                      : 'border-white/10 bg-white/5 hover:border-teal-core/50 hover:bg-teal-core/5'
+                  }`}
+                >
+                  <p className="hud-stamp !text-[8px] text-violet-intel mb-1.5">
+                    {d.run.scenario.replace(/_/g, ' ').toUpperCase()}
+                  </p>
+                  <p className="text-sm font-semibold mb-1">{d.name}</p>
+                  <p className="text-[11px] text-[var(--color-text-secondary)] leading-snug mb-2">
+                    {d.logline}
+                  </p>
+                  <p className="hud-stamp !text-[8px] text-[var(--color-text-muted)]">
+                    {d.run.duration_minutes} MIN @ {d.run.wall_clock_factor}× ·{' '}
+                    {d.run.strategy.toUpperCase()}
+                  </p>
+                </button>
+              ))}
+            </div>
+            {demoKey && (
+              <p className="mt-3 hud-stamp !text-[9px] text-teal-core">
+                LAUNCHING {demoKey.toUpperCase().replace(/_/g, ' ')} — ENTERING COMMAND CENTER…
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Launcher */}
         <div className="glass-panel rounded-2xl p-6 mb-6">
