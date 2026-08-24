@@ -95,15 +95,14 @@ export default function HospitalLabels() {
     return () => cancelAnimationFrame(raf);
   }, [camera]);
 
-  const shown = useMemo(
-    () =>
-      tier === 'near'
-        ? HOSPITALS
-        : tier === 'mid'
-          ? HOSPITALS.filter((h) => FLAGSHIP_IDS.has(h.id))
-          : [],
-    [tier],
-  );
+  const shown = useMemo(() => {
+    if (tier === 'far') return [];
+    // Small viewports skip the mid tier — labels only when zoomed in.
+    if (tier === 'mid' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+      return [];
+    }
+    return tier === 'near' ? HOSPITALS : HOSPITALS.filter((h) => FLAGSHIP_IDS.has(h.id));
+  }, [tier]);
 
   if (shown.length === 0) return null;
 

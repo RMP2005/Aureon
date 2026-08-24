@@ -22,6 +22,7 @@ import { requestIntroSweep } from '@/lib/twin/intro';
 import BootOverlay from '@/components/command/BootOverlay';
 import OnboardingOverlay from '@/components/command/OnboardingOverlay';
 import { launchDemo } from '@/lib/api';
+import { useIsCompactViewport } from '@/hooks/useMediaQuery';
 
 /**
  * Command Center (Phase 10D).
@@ -92,6 +93,11 @@ function CommandInner() {
     return new Map(log.map((e) => [e.incident_id, e]));
   }, [feed.result]);
 
+  // Responsive compatibility (desktop frozen): ≥1024px renders the approved
+  // three-column mission grid verbatim; tablet/mobile compose the SAME
+  // panels into a twin-first guided layout with tabbed sections.
+  const isCompact = useIsCompactViewport();
+
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-void">
       <MissionBar
@@ -111,35 +117,49 @@ function CommandInner() {
         }
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[19rem_1fr_20rem] grid-rows-[minmax(0,1fr)_auto] gap-2 p-2">
-        {/* Left rail — debrief chapters take over during replay */}
-        <IncidentQueueColumn
-          liveState={panelState}
-          inReplay={inReplay}
-          replayRecording={replayRecording}
-        />
-
-        {/* Center instrument */}
-        <CenterInstrument
+      {isCompact ? (
+        <CompactLayout
           feed={feed}
+          panelState={panelState}
           inReplay={inReplay}
           replayStatus={replayStatus}
+          replayRecording={replayRecording}
+          dispatchIndex={dispatchIndex}
+          introArrival={introArrival}
           onLoadReplay={() => runId && loadRecording(runId)}
           onExitReplay={stopReplay}
-          showBoot={introArrival}
         />
-
-        {/* Right rail */}
-        <RightRail liveState={panelState} dispatchIndex={dispatchIndex} />
-
-        {/* Timeline spans center+right under the rails */}
-        <div className="col-span-2 col-start-2 min-h-0 rounded-lg border border-hairline bg-panel-1/80">
-          <TimelineShell
-            mode={inReplay ? 'replay' : 'live'}
-            progress={feed.progress}
+      ) : (
+        <div className="grid min-h-0 flex-1 grid-cols-[19rem_1fr_20rem] grid-rows-[minmax(0,1fr)_auto] gap-2 p-2">
+          {/* Left rail — debrief chapters take over during replay */}
+          <IncidentQueueColumn
+            liveState={panelState}
+            inReplay={inReplay}
+            replayRecording={replayRecording}
           />
+
+          {/* Center instrument */}
+          <CenterInstrument
+            feed={feed}
+            inReplay={inReplay}
+            replayStatus={replayStatus}
+            onLoadReplay={() => runId && loadRecording(runId)}
+            onExitReplay={stopReplay}
+            showBoot={introArrival}
+          />
+
+          {/* Right rail */}
+          <RightRail liveState={panelState} dispatchIndex={dispatchIndex} />
+
+          {/* Timeline spans center+right under the rails */}
+          <div className="col-span-2 col-start-2 min-h-0 rounded-lg border border-hairline bg-panel-1/80">
+            <TimelineShell
+              mode={inReplay ? 'replay' : 'live'}
+              progress={feed.progress}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <footer className="h-16 shrink-0 border-t border-hairline bg-panel-1">
         <MetricsStrip
@@ -149,6 +169,124 @@ function CommandInner() {
         />
       </footer>
     </main>
+  );
+}
+
+/**
+ * Tablet / mobile composition (responsive pass).
+ *
+ * Priority order: live twin → timeline → incident & decisions (OPS) or
+ * fleet intelligence (UNITS) via tabs → metrics strip. Reuses the exact
+ * desktop panel components — nothing is removed, only re-arranged.
+ */
+function CompactLayout({
+  feed,
+  panelState,
+  inReplay,
+  replayStatus,
+  replayRecording,
+  dispatchIndex,
+  introArrival,
+  onLoadReplay,
+  onExitReplay,
+}: {
+  feed: ReturnType<typeof useCommandFeed>;
+  panelState: ReturnType<typeof useCommandFeed>['liveState'];
+  inReplay: boolean;
+  replayStatus: ReturnType<typeof useReplayStore.getState>['status'];
+  replayRecording: ReturnType<typeof useReplayStore.getState>['recording'];
+  dispatchIndex: Map<string, import('@/lib/api').DispatchLogEntry> | null;
+  introArrival: boolean;
+  onLoadReplay: () => void;
+  onExitReplay: () => void;
+}) {
+  const [tab, setTab] = useState<'ops' | 'units'>('ops');
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* 1 — Live city twin, map priority */}
+      <CenterInstrument
+        feed={feed}
+        inReplay={inReplay}
+        replayStatus={replayStatus}
+        onLoadReplay={onLoadReplay}
+        onExitReplay={onExitReplay}
+        showBoot={introArrival}
+        compactClassName="h-[38dvh] shrink-0 rounded-none border-x-0 border-t-0"
+      />
+
+      {/* 2 — Run timeline */}
+      <div className="h-14 shrink-0 border-b border-hairline bg-panel-1/80">
+        <TimelineShell
+          mode={inReplay ? 'replay' : 'live'}
+          progress={feed.progress}
+        />
+      </div>
+
+      {/* 3–5 — Panels as a tabbed sheet */}
+      <div
+        role="tablist"
+        aria-label="Operations panels"
+        className="flex shrink-0 border-b border-hairline bg-panel-1"
+      >
+        {(
+          [
+            ['ops', 'OPS · INCIDENTS'],
+            ['units', 'UNITS · INTEL'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            role="tab"
+            aria-selected={tab === value}
+            onClick={() => setTab(value)}
+            className={`hud-label min-h-[44px] flex-1 px-3 !text-[10px] transition-colors ${
+              tab === value
+                ? 'border-b-2 border-teal-core text-teal-core'
+                : 'border-b-2 border-transparent text-[var(--color-text-muted)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2">
+        {tab === 'ops' ? (
+          <>
+            <div className="h-[240px] shrink-0">
+              {inReplay ? (
+                <MissionDebrief recording={replayRecording} />
+              ) : (
+                <IncidentQueue liveState={panelState} />
+              )}
+            </div>
+            <div className="h-[46dvh] shrink-0">
+              <DecisionLedger />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="h-[250px] shrink-0">
+              <FleetPanel liveState={panelState} />
+            </div>
+            <div className="h-[210px] shrink-0">
+              <HospitalPanel liveState={panelState} />
+            </div>
+            <section className="flex h-[260px] shrink-0 flex-col rounded-lg border border-hairline bg-panel-1/80 backdrop-blur-sm">
+              <header className="shrink-0 border-b border-hairline px-3 py-2">
+                <h2 className="hud-label text-[var(--color-text-secondary)]">
+                  Entity Inspector
+                </h2>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <EntityInspector dispatchIndex={dispatchIndex} />
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -184,6 +322,7 @@ function CenterInstrument({
   onLoadReplay,
   onExitReplay,
   showBoot,
+  compactClassName = '',
 }: {
   feed: ReturnType<typeof useCommandFeed>;
   inReplay: boolean;
@@ -191,6 +330,8 @@ function CenterInstrument({
   onLoadReplay: () => void;
   onExitReplay: () => void;
   showBoot: boolean;
+  /** Extra classes for the compact (tablet/mobile) arrangement only. */
+  compactClassName?: string;
 }) {
   const replayError = useReplayStore((s) => s.error);
   const router = useRouter();
@@ -212,7 +353,9 @@ function CenterInstrument({
   };
 
   return (
-    <div className="relative min-h-0 overflow-hidden rounded-lg border border-hairline">
+    <div
+      className={`relative min-h-0 overflow-hidden rounded-lg border border-hairline ${compactClassName}`}
+    >
       <TwinCanvas />
 
       {/* Landing → operations boot (Phase 11-refinement, ≤2s entry) */}
@@ -244,7 +387,7 @@ function CenterInstrument({
             Aureon decides autonomously. Every decision is logged with
             explainable evidence.
           </p>
-          <div className="mt-2 flex items-center justify-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={startShowcase}
               disabled={demoLaunching}

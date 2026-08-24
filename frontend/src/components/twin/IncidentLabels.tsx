@@ -24,6 +24,12 @@ import { LOCALITIES } from '@/lib/compare/custom-analysis';
 const MAX_LABELED = 4;
 const POLL_MS = 500;
 
+/** Smaller viewports show fewer floating labels — keep the map readable. */
+function labelCap(): number {
+  if (typeof window === 'undefined') return MAX_LABELED;
+  return window.matchMedia('(max-width: 767px)').matches ? 2 : MAX_LABELED;
+}
+
 interface Chip {
   id: string;
   x: number;
@@ -79,8 +85,9 @@ function nearestArea(x: number, z: number): string {
 function readChips(): Chip[] {
   try {
     const { incidents } = getLiveBuffer();
-    if (incidents.length > MAX_LABELED) return [];
-    return incidents.map((i) => ({
+    const cap = labelCap();
+    if (incidents.length > cap) return [];
+    return incidents.slice(0, cap).map((i) => ({
       id: i.id,
       x: i.x,
       z: i.z,

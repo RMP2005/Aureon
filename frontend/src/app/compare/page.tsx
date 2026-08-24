@@ -127,7 +127,7 @@ export default function ComparePage() {
   const [mode, setMode] = useState<Mode>('demo');
 
   return (
-    <main className="flex h-screen w-screen flex-col overflow-hidden bg-void">
+    <main className="flex min-h-dvh w-full flex-col bg-void lg:h-screen lg:w-screen lg:overflow-hidden">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
         <div className="flex items-baseline gap-3">
           <span className="font-display text-base font-semibold tracking-tight">

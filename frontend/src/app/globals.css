@@ -181,3 +181,35 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Responsive compatibility pass (tablet + mobile).                    */
+/* Scoped below the lg breakpoint — desktop rendering is untouched.   */
+/* ------------------------------------------------------------------ */
+@media (max-width: 1023px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Comfortable touch targets for HUD micro-buttons on touch screens. */
+  button,
+  a[role='tab'],
+  a {
+    touch-action: manipulation;
+  }
+}
+
+/* Landing journey on small screens: keep the scroll-driven cinematic but
+   let the narrative breathe (the body element is the scroller). */
+@media (max-width: 767px) {
+  .hud-stamp {
+    font-size: 9px;
+    line-height: 14px;
+  }
+}
