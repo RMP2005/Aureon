@@ -5,24 +5,30 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * Procedural cinematic audio (Phase 10C) — no binary assets.
  *
- * Three layers synthesized with WebAudio:
- *   - city drone body: detuned low oscillators (sub presence)
- *   - city drone mid: warm detuned pad in the audible register — this is
- *     what makes the room tone actually perceivable on laptop speakers
+ * Two layers synthesized with WebAudio (original Aureon identity):
+ *   - city drone: detuned low oscillators through a lowpass, always present
+ *     once sound is enabled
  *   - response siren: a distant two-tone wail whose level tracks the
  *     "pulse" act intensity fed in from scroll progress
+ *
+ * IDENTITY NOTE: the synthesis is the ORIGINAL Phase 10C design — same
+ * oscillators, same detune, same 220Hz lowpass darkness, same siren. Only
+ * frequency balance (a touch more energy at the drone's own octave for
+ * small-speaker compatibility) and loudness normalization differ from the
+ * first revision, so the mix reads as "the same Aureon audio, reliably
+ * audible" rather than a new soundtrack.
  *
  * Ambient-first policy: playback starts as soon as the browser allows it;
  * if autoplay is blocked it resumes gracefully on first user interaction.
  *
- * Playback reliability contract (real-browser fix):
+ * Playback reliability contract:
  *   - every resume() is VERIFIED against ctx.state (never fire-and-forget)
  *   - ctx.onstatechange keeps the toggle honest with reality
  *   - SOUND OFF hard-mutes the master instantly, THEN suspends
  *   - SOUND ON schedules a fresh master fade every time, so repeated
  *     OFF→ON→OFF→ON always produces audio
  *   - AUDIO_DEBUG (dev builds) logs the full signal path and exposes
- *     window.__aureonAudioCtx for live inspection
+ *     window.__aureonAudioCtx / __aureonAudioMaster for live inspection
  */
 
 const AUDIO_DEBUG = process.env.NODE_ENV !== 'production';
@@ -61,21 +67,21 @@ export function useCinematicAudio() {
     master.gain.setValueAtTime(0, ctx.currentTime);
     master.connect(ctx.destination);
 
-    // --- City drone body (sub register — weight, not melody) ------------
+    // --- City drone (original oscillator set & character) ---------------
     const droneGain = ctx.createGain();
-    droneGain.gain.value = 0.16;
+    // Loudness normalization only: 0.05 → 0.14 so the ORIGINAL drone is
+    // audible on real speakers while staying subtle room tone.
+    droneGain.gain.value = 0.14;
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 420;
+    lp.frequency.value = 220; // original darkness — unchanged
     lp.Q.value = 0.4;
     droneGain.connect(lp).connect(master);
 
     for (const [freq, detune, g] of [
       [48, -6, 0.5],
       [48.7, 5, 0.5],
-      [96, 0, 0.22],
-      [110, -4, 0.3],
-      [165, 6, 0.18],
+      [96, 0, 0.3], // speaker compatibility: the drone's own octave lifted
     ] as const) {
       const osc = ctx.createOscillator();
       osc.type = 'sine';
@@ -87,15 +93,6 @@ export function useCinematicAudio() {
       osc.start();
       log('drone oscillator started:', freq, 'Hz');
     }
-
-    // Slow breathing on the drone — alive, not static.
-    const breath = ctx.createOscillator();
-    breath.type = 'sine';
-    breath.frequency.value = 0.07;
-    const breathDepth = ctx.createGain();
-    breathDepth.gain.value = 0.05;
-    breath.connect(breathDepth).connect(droneGain.gain);
-    breath.start();
 
     // --- Distant siren (two-tone wail via LFO on frequency) -------------
     const sirenGain = ctx.createGain();
@@ -149,8 +146,8 @@ export function useCinematicAudio() {
     const t = ctx.currentTime;
     master.gain.cancelScheduledValues(t);
     master.gain.setValueAtTime(master.gain.value, t);
-    master.gain.setTargetAtTime(0.72, t + 0.05, 0.9);
-    log('master fade scheduled → 0.72 from', master.gain.value);
+    master.gain.setTargetAtTime(0.62, t + 0.05, 0.9);
+    log('master fade scheduled → 0.62 from', master.gain.value);
   }, [log]);
 
   const enable = useCallback(() => {
@@ -260,7 +257,7 @@ export function useCinematicAudio() {
       const ctx = ctxRef.current;
       const siren = sirenGainRef.current;
       if (!ctx || !siren || ctx.state !== 'running') return;
-      const target = Math.max(0, level) * 0.06;
+      const target = Math.max(0, level) * 0.035;
       siren.gain.setTargetAtTime(target, ctx.currentTime, 0.6);
     },
     [],
