@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import LandingCanvas from '@/components/landing/LandingCanvas';
 import ActOverlays from '@/components/landing/ActOverlays';
 import AureonMark from '@/components/brand/AureonMark';
 import LandingHud from '@/components/landing/LandingHud';
+import LandingLegend from '@/components/landing/LandingLegend';
+import LandingCTAs from '@/components/landing/LandingCTAs';
 import { setLandingProgress } from '@/lib/landing/progress';
 import { useCinematicAudio } from '@/hooks/useCinematicAudio';
 
@@ -33,8 +34,20 @@ function JourneyLanding() {
   const journeyRef = useRef<HTMLDivElement>(null);
   const audio = useCinematicAudio();
 
+  // Clean entry (logo-nav fix): kill browser scroll restoration and force
+  // the journey to progress zero BEFORE first paint — no partial scenes,
+  // no jump, no flash. Runs on every mount, including client navigations.
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    setLandingProgress(0);
+  }, []);
+
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
+
+    // Start from a known-clean state regardless of what ran before mount.
+    setLandingProgress(0);
 
     const ctx = gsap.context(() => {
       // Master scrub — one trigger drives scene progress…
@@ -75,6 +88,15 @@ function JourneyLanding() {
       });
     }, journeyRef);
 
+    // Late-restoration guard: browsers can restore scroll asynchronously
+    // AFTER mount. Re-assert the clean state, then measure.
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      setLandingProgress(0);
+      ScrollTrigger.refresh();
+    });
+
     return () => ctx.revert();
     // Audio setters are stable refs — safe to omit from deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,11 +118,11 @@ function JourneyLanding() {
         </div>
 
         {/* Wordmark */}
-        <div className="pointer-events-none absolute left-6 top-6 z-20 flex select-none items-center gap-2.5">
+        <div className="pointer-events-none absolute left-6 top-6 z-20 flex select-none items-center gap-3">
           <AureonMark size={22} />
           <p className="font-display text-lg font-semibold tracking-tight">
             Aureon
-            <span className="mx-2.5 text-teal-core">/</span>
+            <span className="mx-3 text-teal-core">/</span>
             <span className="hud-label align-middle text-[var(--color-text-muted)]">
               Urban Intelligence OS
             </span>
@@ -109,6 +131,9 @@ function JourneyLanding() {
 
         {/* Scientific instrument overlay (Phase 11-refinement) */}
         <LandingHud />
+
+        {/* Map key — surfaces with the final reveal (Phase 11H) */}
+        <LandingLegend />
 
         {/* Opening splash — dissolves into Act I */}
         <Splash />
@@ -119,7 +144,8 @@ function JourneyLanding() {
           className="pointer-events-none absolute bottom-7 inset-x-0 z-20 flex flex-col items-center gap-2 transition-opacity"
         >
           <span className="hud-label text-[var(--color-text-muted)]">Scroll</span>
-          <div className="h-8 w-px bg-gradient-to-b from-teal-core to-transparent" />
+          {/* Solid hairline pulse — no decorative gradients (Phase 11H) */}
+          <div className="h-8 w-px bg-teal-core/50 animate-pulse" />
         </div>
 
         {/* Sound opt-in (autoplay-policy compliant) */}
@@ -173,7 +199,9 @@ function hideScrollHint(progress: number) {
 
 /** Reduced-motion fallback: final-frame city, no scrubbing, plain flow. */
 function StaticLanding() {
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     setLandingProgress(1);
   }, []);
   return (
@@ -190,19 +218,8 @@ function StaticLanding() {
             The urban intelligence operating system. A living digital twin of
             Bengaluru with explainable emergency-dispatch intelligence.
           </p>
-          <div className="pointer-events-auto mt-8 flex gap-4 justify-center">
-            <Link
-              href="/command?intro=1"
-              className="px-7 py-3 rounded-lg bg-teal-core text-black font-semibold hover:brightness-110 transition-all"
-            >
-              Enter Command Center →
-            </Link>
-            <Link
-              href="/simulation"
-              className="px-7 py-3 rounded-lg border border-hairline-strong text-sm font-medium hover:bg-white/5 transition-colors"
-            >
-              Run a Simulation
-            </Link>
+          <div className="pointer-events-auto mt-8 flex justify-center">
+            <LandingCTAs compact />
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { getRoadBuffer, ROAD_TIERS, type RoadTier } from '@/lib/twin/city-data';
+import { createRoadGeometry, ROAD_TIERS, type RoadTier } from '@/lib/twin/city-data';
 
 /**
  * The arterial skeleton — three merged LineSegments draw calls total.
@@ -12,28 +12,15 @@ import { getRoadBuffer, ROAD_TIERS, type RoadTier } from '@/lib/twin/city-data';
  * entity states own the color channel).
  */
 const TIER_STYLE: Record<RoadTier, { opacity: number; tint: number }> = {
-  0: { opacity: 0.85, tint: 0x8fa3bf }, // trunk / expressway
-  1: { opacity: 0.5, tint: 0x6b7d99 }, // primary arterial
-  2: { opacity: 0.22, tint: 0x4a5872 }, // secondary
+  0: { opacity: 0.92, tint: 0xcdd9ec }, // trunk / expressway — titanium-white
+  1: { opacity: 0.55, tint: 0x76889f }, // primary arterial
+  2: { opacity: 0.26, tint: 0x44516a }, // secondary
 };
 
 function TierLines({ tier }: { tier: RoadTier }) {
-  const geometry = useMemo(() => {
-    let buffer = getRoadBuffer(tier);
-    // Final defense: verify every vertex is finite before the attribute
-    // reaches Three.js. A single NaN poisons computeBoundingSphere.
-    if (buffer && !Array.from(buffer).every(Number.isFinite)) {
-      buffer = null;
-    }
-    // Empty network data → no geometry at all. Mounting a zero-vertex
-    // position attribute makes Three.js compute a NaN bounding sphere.
-    if (!buffer) return null;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(buffer, 2));
-    // Z-up data → lie flat onto XZ plane
-    geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-    return geo;
-  }, [tier]);
+  // createRoadGeometry emits finite itemSize-3 XZ positions — no matrix
+  // math, immune to the three r160+ itemSize-2 NaN regression.
+  const geometry = useMemo(() => createRoadGeometry(tier), [tier]);
 
   if (!geometry) return null;
 

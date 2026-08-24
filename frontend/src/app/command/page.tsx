@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import TwinCanvas from '@/components/twin/TwinCanvas';
+import MapLegend from '@/components/twin/MapLegend';
 import MissionBar from '@/components/command/MissionBar';
 import IncidentQueue from '@/components/command/IncidentQueue';
 import FleetPanel from '@/components/command/FleetPanel';
@@ -19,6 +20,7 @@ import { useReplayStore } from '@/lib/twin/replay';
 import { useSessionStore } from '@/lib/twin/store';
 import { requestIntroSweep } from '@/lib/twin/intro';
 import BootOverlay from '@/components/command/BootOverlay';
+import OnboardingOverlay from '@/components/command/OnboardingOverlay';
 import { launchDemo } from '@/lib/api';
 
 /**
@@ -160,15 +162,15 @@ function IncidentQueueColumn({
   replayRecording: ReturnType<typeof useReplayStore.getState>['recording'];
 }) {
   return (
-    <div className="flex min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+      <div className="min-h-0 flex-[1_1_0%]">
         {inReplay ? (
           <MissionDebrief recording={replayRecording} />
         ) : (
           <IncidentQueue liveState={liveState} />
         )}
       </div>
-      <div className="min-h-0 flex-[2]">
+      <div className="min-h-0 flex-[2_1_0%]">
         <DecisionLedger />
       </div>
     </div>
@@ -215,6 +217,12 @@ function CenterInstrument({
 
       {/* Landing → operations boot (Phase 11-refinement, ≤2s entry) */}
       {showBoot && <BootOverlay />}
+
+      {/* Operator map key (Phase 11H) — bottom-left of the instrument */}
+      <MapLegend className="absolute bottom-3 left-3 z-10 hidden md:block" />
+
+      {/* First-visit element guide (Phase 11H) */}
+      <OnboardingOverlay />
 
       {/* Replay session controls */}
       {inReplay && (

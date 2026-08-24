@@ -64,11 +64,11 @@ export default function DecisionExplain({
       {/* Factors considered */}
       {(parsed.coverageScore !== undefined || parsed.genericRows.length > 0) && (
         <section>
-          <SectionTitle>FACTORS CONSIDERED</SectionTitle>
+          <SectionTitle>WHAT THE ENGINE WEIGHED</SectionTitle>
           <div className="mt-1 space-y-1">
             {parsed.coverageScore !== undefined && (
               <FactorRow
-                label="COVERAGE SCORE"
+                label="CITY COVERAGE AFTER CHOICE"
                 value={parsed.coverageScore.toFixed(2)}
               />
             )}
@@ -76,13 +76,17 @@ export default function DecisionExplain({
               <FactorRow key={r.label} label={r.label} value={r.value} />
             ))}
           </div>
+          <p className="mt-1.5 text-[10px] leading-snug text-[var(--color-text-muted)]">
+            Coverage describes how much of the city stays protected by the
+            remaining fleet after this unit is sent.
+          </p>
         </section>
       )}
 
       {/* Tradeoffs / override reasoning */}
       {parsed.overrideReason && (
         <section>
-          <SectionTitle>TRADEOFF</SectionTitle>
+          <SectionTitle>THE TRADEOFF ACCEPTED</SectionTitle>
           <p className="mt-1 rounded-sm bg-amber-warn/10 px-2 py-1.5 text-[11px] leading-snug text-amber-warn">
             {parsed.overrideReason}
           </p>
@@ -93,7 +97,7 @@ export default function DecisionExplain({
       {alternatives.length > 0 && (
         <section>
           <SectionTitle>
-            ALTERNATIVES · {selected.length} SELECTED / {rejected.length} REJECTED
+            UNITS EVALUATED · {selected.length} SENT / {rejected.length} PASSED OVER
           </SectionTitle>
           <ul className="mt-1 space-y-0.5">
             {alternatives.map((r, i) => (
@@ -104,7 +108,7 @@ export default function DecisionExplain({
                 }`}
               >
                 <span className="hud-stamp !text-[8px] shrink-0 w-[68px]">
-                  {r.accent ? '▸ SELECTED' : 'REJECTED'}
+                  {r.accent ? '▸ SENT' : 'PASSED OVER'}
                 </span>
                 <span className={`tnum flex-1 text-right font-mono ${r.accent ? 'font-semibold' : ''}`}>
                   {r.value}

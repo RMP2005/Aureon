@@ -119,6 +119,7 @@ function TwinPageInner() {
       {/* Way back — temporary scaffolding until command center (10D) */}
       <Link
         href="/"
+        onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior })}
         className="absolute right-5 top-5 hud-stamp text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
       >
         ← EXIT TWIN

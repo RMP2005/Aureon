@@ -32,6 +32,20 @@ const LABEL_OVERRIDES: Record<string, string> = {
   candidates: 'CANDIDATES',
 };
 
+/** Plain-language display names for recurring evidence keys (Phase 11H). */
+const GENERIC_LABELS: Record<string, string> = {
+  eta_sec: 'TRAVEL TIME',
+  travel_time_sec: 'TRAVEL TIME',
+  eta_min: 'TRAVEL TIME',
+  distance_km: 'DISTANCE',
+  distance_to_scene_km: 'DISTANCE',
+  response_time_sec: 'RESPONSE TIME',
+  capability: 'EQUIPMENT',
+  required_capability: 'EQUIPMENT NEEDED',
+  severity: 'SEVERITY',
+  priority: 'PRIORITY',
+};
+
 export function parseDecision(details: DispatchDecisionDetails): ParsedDecision {
   const known = new Set(Object.keys(LABEL_OVERRIDES));
   const candidateRows = formatCandidates(details.candidates);
@@ -41,7 +55,7 @@ export function parseDecision(details: DispatchDecisionDetails): ParsedDecision 
     if (known.has(key) || key === 'candidates') continue;
     if (value === null || value === undefined || value === '') continue;
     genericRows.push({
-      label: key.replace(/_/g, ' ').toUpperCase(),
+      label: (GENERIC_LABELS[key] ?? key.replace(/_/g, ' ')).toUpperCase(),
       value: typeof value === 'number' ? formatNumber(value) : String(value),
     });
   }
@@ -61,13 +75,21 @@ function formatCandidates(
   if (!Array.isArray(candidates) || candidates.length === 0) return [];
   return candidates.map((c) => {
     const name = c.callsign ?? c.ambulance_id ?? 'UNIT';
+    // Plain-language outcome (Phase 11H): what happened, not acronyms.
     const eta =
-      typeof c.eta_sec === 'number' ? `${formatNumber(c.eta_sec / 60)} min` : null;
-    const match =
-      c.capability_match === true ? ' · CAP OK' : c.capability_match === false ? ' · CAP GAP' : '';
+      typeof c.eta_sec === 'number'
+        ? `arrives in ${formatNumber(c.eta_sec / 60)} min`
+        : null;
+    const capability =
+      c.capability_match === true
+        ? 'right equipment'
+        : c.capability_match === false
+          ? 'lacks the required equipment'
+          : null;
+    const parts = [name, eta, capability].filter(Boolean).join(' · ');
     return {
       label: c.selected ? 'SELECTED' : 'CONSIDERED',
-      value: `${name}${eta ? ` · ETA ${eta}` : ''}${match}`,
+      value: parts,
       accent: Boolean(c.selected),
     };
   });

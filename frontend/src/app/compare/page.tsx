@@ -10,18 +10,23 @@ import {
   type ComparisonImprovements,
   type SimulationMetrics,
 } from '@/lib/api';
+import ScenarioDemo from '@/components/compare/ScenarioDemo';
 
 /**
- * BASELINE vs AUREON compare architecture (Phase 10E-1).
+ * BASELINE vs AUREON compare architecture (Phase 10E-1, extended Phase 11I).
  *
- * Two evidence paths, both fully engine-reported:
- *  1. PAIRED REPLAYS — any two completed simulation runs sharing an exact
- *     scenario signature (duration · rate · seed), diffed metric-by-metric.
- *  2. CONTROLLED BENCHMARK — the evaluator's own side-by-side run of both
- *     strategies on an identical schedule, surfaced with its improvement
- *     report.
+ * Two experiences:
+ *  - SCENARIO DEMO (default) — guided animated walkthrough with clearly
+ *    stamped illustrative teaching values. Product understanding first.
+ *  - ENGINE EVIDENCE — two fully engine-reported paths:
+ *      1. PAIRED REPLAYS — completed runs sharing an exact scenario
+ *         signature (duration · rate · seed), diffed metric-by-metric.
+ *      2. CONTROLLED BENCHMARK — side-by-side run of both strategies on an
+ *         identical schedule with its improvement report.
  * No synthetic values anywhere; absent data renders as absent.
  */
+
+type Mode = 'demo' | 'evidence';
 
 interface MetricRow {
   label: string;
@@ -119,6 +124,8 @@ export default function ComparePage() {
   const [benchParams, setBenchParams] = useState({ duration_minutes: 60, incident_rate_per_hour: 14, seed: 42 });
   const bench = useMutation({ mutationFn: compareStrategies });
 
+  const [mode, setMode] = useState<Mode>('demo');
+
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-void">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
@@ -129,18 +136,45 @@ export default function ComparePage() {
               Baseline vs Aureon
             </span>
           </span>
-          <span className="hud-stamp !text-[9px] text-[var(--color-text-muted)]">
-            IDENTICAL SCENARIOS ONLY
-          </span>
         </div>
-        <Link
-          href="/command"
-          className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
-        >
-          ← COMMAND
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Mode switcher */}
+          <div className="flex rounded-md border border-hairline-strong p-0.5">
+            {(
+              [
+                ['demo', 'SCENARIO DEMO'],
+                ['evidence', 'ENGINE EVIDENCE'],
+              ] as [Mode, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setMode(value)}
+                className={`hud-label rounded px-3 py-1.5 !text-[9px] transition-colors ${
+                  mode === value
+                    ? 'bg-teal-core/15 text-teal-core'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Link
+            href="/command"
+            className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+          >
+            ← COMMAND
+          </Link>
+        </div>
       </header>
 
+      {mode === 'demo' && (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ScenarioDemo />
+        </div>
+      )}
+
+      {mode === 'evidence' && (
       <div className="grid min-h-0 flex-1 grid-cols-[24rem_1fr] gap-2 p-2">
         {/* Experiment setup */}
         <section className="flex min-h-0 flex-col gap-2 overflow-y-auto rounded-lg border border-hairline bg-panel-1/80 p-4 backdrop-blur-sm">
@@ -237,6 +271,7 @@ export default function ComparePage() {
           {bench.data && <BenchmarkReport report={bench.data.data} />}
         </section>
       </div>
+      )}
     </main>
   );
 }

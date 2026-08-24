@@ -3,30 +3,39 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { getRoadBuffer } from '@/lib/twin/city-data';
+import { createRoadGeometry } from '@/lib/twin/city-data';
 import { safeProject } from '@/lib/twin/projection';
 import { getLandingProgress } from '@/lib/landing/progress';
 import CITY_DATA from '@/data/bangalore-city.json';
 
 /**
- * Cinematic landing scene (Phase 10C).
+ * Cinematic landing scene (Phase 11H).
  *
- * The city materializes as one continuous gesture driven solely by scroll
- * progress: arteries draw outward from the core, clinical infrastructure
- * rises last, the fleet wakes beneath it. No post-processing, no particles —
- * the drama is choreography of real city data.
+ * The final reveal is the city itself awakening — no abstract shapes:
+ *   roads draw outward from the core (primary routes brightest),
+ *   hospitals rise as gold markers, ambulance bases settle teal,
+ *   patrol units begin moving along real arteries,
+ *   emergency beacons pulse at true street midpoints,
+ *   response-zone boundaries surface last.
+ *
+ * Every object is a real dataset feature. Red appears only where
+ * emergencies live; violet never appears here — nothing reasons yet.
  */
 
 // --- Materialization windows (progress space) ---------------------------
+// Roads stay a BACKGROUND layer — dim grey-white, never competing with the
+// wordmark. Brightness only lifts gently through the final convergence.
 const TIER_WINDOWS = [
-  { tier: 0, start: 0.02, end: 0.26, finalOpacity: 0.85 },
-  { tier: 1, start: 0.2, end: 0.48, finalOpacity: 0.5 },
-  { tier: 2, start: 0.4, end: 0.68, finalOpacity: 0.22 },
+  { tier: 0, start: 0.02, end: 0.26, finalOpacity: 0.58 },
+  { tier: 1, start: 0.2, end: 0.48, finalOpacity: 0.32 },
+  { tier: 2, start: 0.4, end: 0.68, finalOpacity: 0.14 },
 ] as const;
 
+const ORB_WINDOW: [number, number] = [0.12, 0.38];
 const HOSPITAL_WINDOW: [number, number] = [0.52, 0.64];
 const STATION_WINDOW: [number, number] = [0.56, 0.68];
 const FLEET_WINDOW: [number, number] = [0.58, 0.82];
+const INCIDENT_WINDOW: [number, number] = [0.74, 0.9];
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 const easeInOutSine = (t: number) => 0.5 - Math.cos(Math.PI * t) / 2;
@@ -65,13 +74,32 @@ export default function LandingScene() {
       <color attach="background" args={['#05070D']} />
       <fog attach="fog" args={['#05070D', 130, 380]} />
       <LightRig />
-      <MaterializingCity />
-      <RisingInfrastructure />
-      <NetworkActivity />
-      <EpilogueTopology />
+      {/* One world group — gathers toward center behind the title at the end */}
+      <CityWorld>
+        <MaterializingCity />
+        <IntelligenceOrbs />
+        <RisingInfrastructure />
+        <PatrolFleet />
+        <RouteFlow />
+        <IncidentBeacons />
+      </CityWorld>
       <CinematicCamera />
     </>
   );
+}
+
+/**
+ * Hero convergence (final scroll): the entire city gently contracts toward
+ * its centroid while brightening — elements gather behind the Aureon
+ * title like a command-center visualization taking command of the frame.
+ */
+function CityWorld({ children }: { children: React.ReactNode }) {
+  const group = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const k = easeOutCubic(window01(getLandingProgress(), [0.86, 1]));
+    if (group.current) group.current.scale.setScalar(1 - 0.055 * k);
+  });
+  return <group ref={group}>{children}</group>;
 }
 
 function LightRig() {
@@ -80,8 +108,8 @@ function LightRig() {
 
   useFrame(() => {
     const k = ramp(getLandingProgress(), 0.05, 0.55);
-    if (hemiRef.current) hemiRef.current.intensity = 0.12 + k * 0.38;
-    if (dirRef.current) dirRef.current.intensity = 0.15 + k * 0.4;
+    if (hemiRef.current) hemiRef.current.intensity = 0.12 + k * 0.42;
+    if (dirRef.current) dirRef.current.intensity = 0.15 + k * 0.45;
   });
 
   return (
@@ -97,21 +125,25 @@ function LightRig() {
   );
 }
 
+/* --- Roads ---------------------------------------------------------------
+   The map is a background layer: thin soft-white routes over the void.
+   Primary expressways read slightly brighter; secondaries recede. The
+   city stays dim so gold-free branding, teal, blue and red own the frame. */
+
 const TIER_TINTS: Record<number, string> = {
-  0: '#8fa3bf',
-  1: '#6b7d99',
-  2: '#4a5872',
+  0: '#aab8cf',
+  1: '#74869f',
+  2: '#46536b',
 };
 
 function MaterializingCity() {
   const tiers = useMemo(
     () =>
       TIER_WINDOWS.map(({ tier, start, end, finalOpacity }) => {
-        const buffer = getRoadBuffer(tier);
-        if (!buffer) return null;
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.BufferAttribute(buffer, 2));
-        geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+        // itemSize-3 XZ geometry, no applyMatrix4 — the matrix path poisons
+        // itemSize-2 attributes with NaN on three r160+ and blanks the map.
+        const geometry = createRoadGeometry(tier);
+        if (!geometry) return null;
         geometry.setDrawRange(0, 0);
         return {
           tier,
@@ -119,7 +151,7 @@ function MaterializingCity() {
           end,
           finalOpacity,
           geometry,
-          totalVertices: buffer.length / 2,
+          totalVertices: geometry.getAttribute('position').count,
         };
       }).filter(
         (t): t is (typeof TIER_WINDOWS)[number] & {
@@ -134,6 +166,9 @@ function MaterializingCity() {
 
   useFrame(() => {
     const p = getLandingProgress();
+    // Hero convergence: a gentle lift only — the map must never outshine
+    // the wordmark, even at the final reveal.
+    const converge = window01(p, [0.86, 1]);
     for (let i = 0; i < tiers.length; i++) {
       const t = tiers[i];
       const k = window01(p, [t.start, t.end]);
@@ -144,8 +179,11 @@ function MaterializingCity() {
       );
       const mesh = meshRefs.current[i];
       if (mesh) {
-        (mesh.material as THREE.LineBasicMaterial).opacity =
-          k * t.finalOpacity;
+        const base = k * t.finalOpacity;
+        (mesh.material as THREE.LineBasicMaterial).opacity = Math.min(
+          1,
+          base + converge * 0.05,
+        );
       }
     }
   });
@@ -173,6 +211,12 @@ function MaterializingCity() {
   );
 }
 
+/* --- Infrastructure -------------------------------------------------------
+   Hospitals: small blue glowing markers at fixed real locations — no
+   blocks, no pyramids. Bases: flat teal pads (transport network). */
+
+const INFRA_BLUE = '#4da3ff';
+
 function RisingInfrastructure() {
   const hospGroup = useRef<THREE.Group>(null);
   const stnGroup = useRef<THREE.Group>(null);
@@ -194,54 +238,86 @@ function RisingInfrastructure() {
   return (
     <>
       <group ref={hospGroup}>
-        <HospitalPins />
+        <HospitalMarkers />
       </group>
       <group ref={stnGroup}>
-        <StationSlabs />
+        <StationPads />
       </group>
     </>
   );
 }
 
-function HospitalPins() {
-  const ref = useRef<THREE.InstancedMesh>(null);
-  const mats = useMemo(
-    () =>
-      HOSPITAL_LANDING.map((h) =>
-        new THREE.Matrix4()
-          .makeTranslation(h.x, 0.9, h.z)
-          .scale(new THREE.Vector3(1.5, 2, 1.5))
-          .clone(),
-      ),
-    [],
-  );
-  applyMatricesOnMount(ref, mats);
+/** Hospital marker matrices; glow discs lie flat beneath them.
+    Filled after HOSPITAL_LANDING is derived — see static data section. */
+let HOSPITAL_MATRICES: THREE.Matrix4[] = [];
+let HALO_MATRICES: THREE.Matrix4[] = [];
+const GROUND_QUAT = new THREE.Quaternion().setFromAxisAngle(
+  new THREE.Vector3(1, 0, 0),
+  -Math.PI / 2,
+);
+
+function HospitalMarkers() {
+  const bodyRef = useRef<THREE.InstancedMesh>(null);
+  const haloRef = useRef<THREE.InstancedMesh>(null);
+
+  useLayoutEffect(() => {
+    if (bodyRef.current) {
+      HOSPITAL_MATRICES.forEach((m, i) => bodyRef.current!.setMatrixAt(i, m));
+      bodyRef.current.instanceMatrix.needsUpdate = true;
+    }
+    if (haloRef.current) {
+      HALO_MATRICES.forEach((m, i) => haloRef.current!.setMatrixAt(i, m));
+      haloRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, []);
+
   return (
-    <instancedMesh
-      ref={ref}
-      args={[undefined, undefined, HOSPITAL_LANDING.length]}
-      frustumCulled={false}
-    >
-      <octahedronGeometry args={[0.55]} />
-      <meshStandardMaterial
-        color="#D6B45A"
-        roughness={0.35}
-        metalness={0.6}
-        emissiveIntensity={0}
-      />
-    </instancedMesh>
+    <>
+      {/* Small glowing sphere — reads as a beacon, never as a block. */}
+      <instancedMesh
+        ref={bodyRef}
+        args={[undefined, undefined, HOSPITAL_LANDING.length]}
+        frustumCulled={false}
+      >
+        <sphereGeometry args={[0.42, 20, 16]} />
+        <meshStandardMaterial
+          color={INFRA_BLUE}
+          emissive={INFRA_BLUE}
+          emissiveIntensity={0.55}
+          roughness={0.35}
+          metalness={0.1}
+        />
+      </instancedMesh>
+      {/* Soft glow: flat additive disc on the ground under each site. */}
+      <instancedMesh
+        ref={haloRef}
+        args={[undefined, undefined, HOSPITAL_LANDING.length]}
+        frustumCulled={false}
+      >
+        <circleGeometry args={[0.5, 24]} />
+        <meshBasicMaterial
+          color={INFRA_BLUE}
+          transparent
+          opacity={0.12}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </instancedMesh>
+    </>
   );
 }
 
-function StationSlabs() {
+function StationPads() {
   const ref = useRef<THREE.InstancedMesh>(null);
   const mats = useMemo(
     () =>
       STATION_LANDING.map((s) =>
-        new THREE.Matrix4()
-          .makeTranslation(s.x, 0.15, s.z)
-          .scale(new THREE.Vector3(1.1, 0.3, 1.1))
-          .clone(),
+        new THREE.Matrix4().compose(
+          new THREE.Vector3(s.x, 0.06, s.z),
+          GROUND_QUAT,
+          new THREE.Vector3(1.15, 1.15, 1.15),
+        ),
       ),
     [],
   );
@@ -252,8 +328,14 @@ function StationSlabs() {
       args={[undefined, undefined, STATION_LANDING.length]}
       frustumCulled={false}
     >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#0e5f54" roughness={0.7} metalness={0.2} />
+      <circleGeometry args={[0.8, 24]} />
+      <meshBasicMaterial
+        color="#0e6e60"
+        transparent
+        opacity={0.75}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
     </instancedMesh>
   );
 }
@@ -270,15 +352,7 @@ function applyMatricesOnMount(
   }, [mats, ref]);
 }
 
-// --- Network activity ----------------------------------------------------
-// Replaces the old placeholder capsules ("teal blobs") with data-driven
-// system pulses: stride-sampled midpoints of REAL arterial segments, each
-// breathing as a low ring on the ground plane — a living twin, not decor.
-// No particles, no glow layers; brightness carries the activity.
-
-const PULSE_COUNT = 22;
-
-// --- Static data (non-interactive film props) ----------------------------
+// --- Static city data (non-interactive film props) ------------------------
 
 const CITY_SEG = CITY_DATA.segments as unknown as [number, number, number, number, number][];
 const CITY_SEG_COUNT = CITY_SEG.length;
@@ -298,48 +372,99 @@ const STATION_LANDING = CITY_DATA.stations.map((s) => ({
   ...toWorld(s.lng, s.lat),
 }));
 
-/** Deterministic scatter: stride-sampled arterial midpoints across the grid. */
-const PULSE_SPOTS = (() => {
-  const spots: { x: number; z: number; phase: number; appearAt: number }[] = [];
-  for (let i = 0; spots.length < PULSE_COUNT && i < 40000; i++) {
-    const idx = (i * 697 + 1301) % Math.max(1, CITY_SEG_COUNT);
-    const seg = CITY_SEG[idx];
-    if (!seg) continue;
-    if (![seg[0], seg[1], seg[2], seg[3]].every(Number.isFinite)) continue;
-    const [x, z] = safeProject((seg[0] + seg[2]) / 2, (seg[1] + seg[3]) / 2);
-    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
-    const n = spots.length;
-    spots.push({
-      x,
-      z,
-      phase: (n * 137.5 * Math.PI) / 180,
-      appearAt:
-        FLEET_WINDOW[0] +
-        (((n * 61) % 97) / 97) * (FLEET_WINDOW[1] - FLEET_WINDOW[0]),
-    });
-  }
-  return spots;
-})();
+// Hospital marker matrices — built here, after HOSPITAL_LANDING exists.
+HOSPITAL_MATRICES = HOSPITAL_LANDING.map((h) =>
+  new THREE.Matrix4().makeTranslation(h.x, 1.0, h.z).clone(),
+);
+HALO_MATRICES = HOSPITAL_LANDING.map((h) =>
+  new THREE.Matrix4().compose(
+    new THREE.Vector3(h.x, 0.07, h.z),
+    GROUND_QUAT,
+    new THREE.Vector3(2.6, 2.6, 2.6),
+  ),
+);
 
-function NetworkActivity() {
+/**
+ * Deterministic sample of long arterial segments (world space).
+ * Used by both the patrol fleet (patrol paths) and the beacons
+ * (incident sites). Stride-sampled so coverage spreads city-wide.
+ */
+function sampleArterialSegments(count: number, seedOffset: number) {
+  const picked: { ax: number; az: number; bx: number; bz: number }[] = [];
+  let cursor = seedOffset % Math.max(1, CITY_SEG_COUNT);
+  let guard = 0;
+  while (picked.length < count && guard < 120_000) {
+    guard += 1;
+    cursor = (cursor + 613) % CITY_SEG_COUNT;
+    const seg = CITY_SEG[cursor];
+    if (!seg || ![seg[0], seg[1], seg[2], seg[3]].every(Number.isFinite)) continue;
+    const [ax, az] = safeProject(seg[0], seg[1]);
+    const [bx, bz] = safeProject(seg[2], seg[3]);
+    if (![ax, az, bx, bz].every(Number.isFinite)) continue;
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 5 || len > 40) continue; // real city-block-scale arteries
+    picked.push({ ax, az, bx, bz });
+  }
+  return picked;
+}
+
+/* --- Patrol fleet ----------------------------------------------------------
+   Replaces the old abstract ground-rings ("empty circles") with what the
+   rings were pretending to be: ambulances alive in the network. Each unit
+   glides along a REAL arterial segment, oriented to its direction of
+   travel — the same capsule visual language as the command twin. */
+
+const FLEET_COUNT = 18;
+const FLEET_SPOTS = sampleArterialSegments(FLEET_COUNT, 11);
+
+const TILT_QUAT = new THREE.Quaternion().setFromAxisAngle(
+  new THREE.Vector3(1, 0, 0),
+  Math.PI / 2,
+); // capsule Y-axis → lie along travel direction
+const UP_Y = new THREE.Vector3(0, 1, 0);
+
+interface FleetUnit {
+  ax: number;
+  az: number;
+  bx: number;
+  bz: number;
+  len: number;
+  speed: number;
+  phase: number;
+  appearAt: number;
+}
+
+const FLEET_UNITS: FleetUnit[] = FLEET_SPOTS.map((s, n) => {
+  const len = Math.hypot(s.bx - s.ax, s.bz - s.az);
+  return {
+    ...s,
+    len,
+    speed: 2.2 + ((n * 37) % 23) / 23 * 1.8,
+    phase: ((n * 149) % 360) / 360 * len * 2,
+    appearAt:
+      FLEET_WINDOW[0] +
+      (((n * 61) % 97) / 97) * (FLEET_WINDOW[1] - FLEET_WINDOW[0]),
+  };
+});
+
+function PatrolFleet() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const workMatrix = useRef(new THREE.Matrix4());
-  const workQuat = useRef(
-    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2),
-  );
   const workPos = useRef(new THREE.Vector3());
-  const workScaleV = useRef(new THREE.Vector3());
+  const workQuatYaw = useRef(new THREE.Quaternion());
+  const workQuat = useRef(new THREE.Quaternion());
+  const workScale = useRef(new THREE.Vector3());
   const workColor = useRef(new THREE.Color());
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
-    // Park every instance hidden until the activity window opens.
+    workScale.current.setScalar(0.0001);
     workPos.current.set(0, -10, 0);
-    workScaleV.current.setScalar(0.0001);
-    for (let i = 0; i < PULSE_SPOTS.length; i++) {
-      workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
+    for (let i = 0; i < FLEET_UNITS.length; i++) {
+      workQuat.current.identity();
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
       mesh.setMatrixAt(i, workMatrix.current);
       mesh.setColorAt(i, new THREE.Color('#16F2D4'));
     }
@@ -353,22 +478,36 @@ function NetworkActivity() {
     const p = getLandingProgress();
     const t = clock.elapsedTime;
 
-    // Epilogue handoff: pulses settle as the topology structure rises.
-    const out = 1 - window01(p, [0.86, 0.93]);
+    for (let i = 0; i < FLEET_UNITS.length; i++) {
+      const u = FLEET_UNITS[i];
+      const on = p >= u.appearAt ? Math.min(1, (p - u.appearAt) * 24) : 0;
 
-    for (let i = 0; i < PULSE_SPOTS.length; i++) {
-      const u = PULSE_SPOTS[i];
-      const on = p >= u.appearAt ? 1 : 0;
-      // Gentle sonar-like breath, phase-offset per node.
-      const pulse = 0.5 + 0.5 * Math.sin(t * 1.4 + u.phase);
-      const s = (0.55 + pulse * 0.75) * on * Math.max(0.0001, out);
-      workScaleV.current.setScalar(s);
-      workPos.current.set(u.x, 0.12, u.z);
-      workMatrix.current.compose(workPos.current, workQuat.current, workScaleV.current);
+      // Ping-pong along the artery: 0→len→0.
+      const d = (u.phase + t * u.speed) % (u.len * 2);
+      const s = d <= u.len ? d : u.len * 2 - d;
+      const dirForward = d <= u.len ? 1 : -1;
+
+      const nx = (u.bx - u.ax) / u.len;
+      const nz = (u.bz - u.az) / u.len;
+
+      workPos.current.set(u.ax + nx * s, 0.42, u.az + nz * s);
+      // Yaw about Y applied over the tilt that lays the capsule flat.
+      const yaw = Math.atan2(nx * dirForward, nz * dirForward);
+      workQuatYaw.current.setFromAxisAngle(UP_Y, yaw);
+      workQuat.current.copy(workQuatYaw.current).multiply(TILT_QUAT);
+      workScale.current.setScalar(Math.max(0.0001, on));
+
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
       mesh.setMatrixAt(i, workMatrix.current);
-      // Brightness carries the beat — no glow layers.
-      const b = 0.22 + 0.5 * pulse * on * out;
-      workColor.current.setScalar(b);
+
+      // Idle-patrol teal; every sixth unit runs violet — a unit currently
+      // dispatched by the decision engine (AI-reasoning color, per contract).
+      const b = 0.55 + 0.18 * Math.sin(t * 1.1 + i * 1.7);
+      if (i % 6 === 2) {
+        workColor.current.setRGB(0.48 * b, 0.36 * b, 1.0 * b);
+      } else {
+        workColor.current.setRGB(0.05 * b, 0.62 * b, 0.55 * b);
+      }
       mesh.setColorAt(i, workColor.current);
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -378,103 +517,315 @@ function NetworkActivity() {
   return (
     <instancedMesh
       ref={meshRef}
-      args={[undefined, undefined, PULSE_COUNT]}
+      args={[undefined, undefined, FLEET_UNITS.length]}
       frustumCulled={false}
     >
-      <ringGeometry args={[0.72, 0.88, 32]} />
-      <meshBasicMaterial color="#ffffff" toneMapped={false} transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} />
+      <capsuleGeometry args={[0.19, 0.45, 4, 8]} />
+      <meshStandardMaterial roughness={0.35} metalness={0.2} />
     </instancedMesh>
   );
 }
 
-// --- Epilogue: district topology -----------------------------------------
-// Replaces the old abstract capsule blobs with a structure that reads as
-// the twin itself: titanium infrastructure rings traced at real city
-// radii, a teal active-systems core, and radial survey spokes. Violet and
-// red are absent by contract — nothing here reasons, nothing bleeds.
+/* --- Route flow ------------------------------------------------------------
+   Animated dotted lines showing WHERE units move: small packets of light
+   streaming along real arteries. The path language is self-explanatory —
+   movement direction is visible without a legend. */
 
-const RING_RADII = [16, 28, 40, 52];
-const SPOKE_COUNT = 12;
+const ROUTE_COUNT = 9;
+const DOTS_PER_ROUTE = 7;
+const ROUTE_SPOTS = sampleArterialSegments(ROUTE_COUNT, 777);
 
-function ringGeometry(radius: number): THREE.BufferGeometry {
-  const pts: number[] = [];
-  const N = 96;
-  for (let i = 0; i < N; i++) {
-    const a1 = (i / N) * Math.PI * 2;
-    const a2 = ((i + 1) / N) * Math.PI * 2;
-    pts.push(
-      Math.cos(a1) * radius,
-      Math.sin(a1) * radius,
-      Math.cos(a2) * radius,
-      Math.sin(a2) * radius,
-    );
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 2));
-  geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-  return geo;
+const ROUTE_WINDOW: [number, number] = [0.5, 0.72];
+
+interface FlowRoute {
+  ax: number;
+  az: number;
+  bx: number;
+  bz: number;
+  len: number;
+  speed: number; // fraction of the route per second
+  appearAt: number;
 }
 
-function EpilogueTopology() {
-  const group = useRef<THREE.Group>(null);
-  const coreRef = useRef<THREE.Mesh>(null);
+const FLOW_ROUTES: FlowRoute[] = ROUTE_SPOTS.map((s, n) => ({
+  ...s,
+  len: Math.hypot(s.bx - s.ax, s.bz - s.az),
+  speed: 0.05 + (((n * 41) % 29) / 29) * 0.045,
+  appearAt:
+    ROUTE_WINDOW[0] + (n / ROUTE_COUNT) * (ROUTE_WINDOW[1] - ROUTE_WINDOW[0]),
+}));
 
-  const rings = useMemo(
-    () => RING_RADII.map((r) => ({ r, geo: ringGeometry(r) })),
-    [],
+function RouteFlow() {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const total = ROUTE_COUNT * DOTS_PER_ROUTE;
+
+  const workMatrix = useRef(new THREE.Matrix4());
+  const workQuat = useRef(
+    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2),
   );
-  const spokes = useMemo(() => {
-    const pts: number[] = [];
-    for (let i = 0; i < SPOKE_COUNT; i++) {
-      const a = (i / SPOKE_COUNT) * Math.PI * 2;
-      pts.push(
-        Math.cos(a) * RING_RADII[0],
-        Math.sin(a) * RING_RADII[0],
-        Math.cos(a) * RING_RADII[RING_RADII.length - 1],
-        Math.sin(a) * RING_RADII[RING_RADII.length - 1],
-      );
+  const workPos = useRef(new THREE.Vector3());
+  const workScale = useRef(new THREE.Vector3());
+  const workColor = useRef(new THREE.Color());
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    workPos.current.set(0, -10, 0);
+    workScale.current.setScalar(0.0001);
+    for (let i = 0; i < total; i++) {
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+      mesh.setMatrixAt(i, workMatrix.current);
+      mesh.setColorAt(i, new THREE.Color('#16F2D4'));
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 2));
-    geo.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-    return geo;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [total]);
+
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const p = getLandingProgress();
+    const t = clock.elapsedTime;
+
+    for (let r = 0; r < FLOW_ROUTES.length; r++) {
+      const route = FLOW_ROUTES[r];
+      const on = p >= route.appearAt ? Math.min(1, (p - route.appearAt) * 18) : 0;
+
+      for (let d = 0; d < DOTS_PER_ROUTE; d++) {
+        const i = r * DOTS_PER_ROUTE + d;
+        // Evenly spaced packets marching one-way along the artery.
+        const u = (t * route.speed + d / DOTS_PER_ROUTE) % 1;
+        const fadeEdge = Math.min(1, u * 8, (1 - u) * 8); // soften the ends
+        const s = 0.16 * on * fadeEdge;
+
+        workPos.current.set(
+          route.ax + (route.bx - route.ax) * u,
+          0.09,
+          route.az + (route.bz - route.az) * u,
+        );
+        workScale.current.setScalar(Math.max(0.0001, s));
+        workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+        mesh.setMatrixAt(i, workMatrix.current);
+
+        const b = on * fadeEdge * (0.5 + 0.25 * Math.sin(t * 2 + i));
+        workColor.current.setRGB(0.35 * b, 0.75 * b, 0.68 * b);
+        mesh.setColorAt(i, workColor.current);
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, ROUTE_COUNT * DOTS_PER_ROUTE]} frustumCulled={false}>
+      <circleGeometry args={[1, 10]} />
+      <meshBasicMaterial transparent opacity={0.85} side={THREE.DoubleSide} depthWrite={false} />
+    </instancedMesh>
+  );
+}
+
+/* --- Incident beacons ------------------------------------------------------
+   Red exists ONLY where an emergency is. Each beacon is a small red marker
+   with a slow sonar ring; major incidents breathe wider than minor ones —
+   severity reads through size and rhythm, nothing else. */
+
+const BEACON_COUNT = 6;
+const BEACON_SPOTS = sampleArterialSegments(BEACON_COUNT, 4703);
+
+interface Beacon {
+  x: number;
+  z: number;
+  major: boolean;
+  phase: number;
+  appearAt: number;
+}
+
+const BEACONS: Beacon[] = BEACON_SPOTS.map((s, n) => ({
+  x: (s.ax + s.bx) / 2,
+  z: (s.az + s.bz) / 2,
+  major: n % 3 === 0,
+  phase: (n * 137.5 * Math.PI) / 180,
+  appearAt:
+    INCIDENT_WINDOW[0] +
+    (((n * 53) % 89) / 89) * (INCIDENT_WINDOW[1] - INCIDENT_WINDOW[0]),
+}));
+
+function IncidentBeacons() {
+  const ringRef = useRef<THREE.InstancedMesh>(null);
+  const coreRef = useRef<THREE.InstancedMesh>(null);
+
+  const workMatrix = useRef(new THREE.Matrix4());
+  const workQuat = useRef(
+    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2),
+  );
+  const workCoreQuat = useRef(new THREE.Quaternion());
+  const workPos = useRef(new THREE.Vector3());
+  const workScale = useRef(new THREE.Vector3());
+
+  useLayoutEffect(() => {
+    for (const ref of [ringRef, coreRef]) {
+      const mesh = ref.current;
+      if (!mesh) continue;
+      workPos.current.set(0, -10, 0);
+      workScale.current.setScalar(0.0001);
+      for (let i = 0; i < BEACONS.length; i++) {
+        workQuat.current.identity();
+        workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+        mesh.setMatrixAt(i, workMatrix.current);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    }
   }, []);
 
   useFrame(({ clock }) => {
     const p = getLandingProgress();
-    const k = ramp(p, 0.87, 0.99);
-    if (group.current) {
-      group.current.scale.setScalar(Math.max(0.0001, k));
-      group.current.position.y = -(1 - k) * 3;
+    const t = clock.elapsedTime;
+
+    for (let i = 0; i < BEACONS.length; i++) {
+      const b = BEACONS[i];
+      const on = p >= b.appearAt ? Math.min(1, (p - b.appearAt) * 20) : 0;
+      if (!on && ringRef.current && coreRef.current) {
+        workScale.current.setScalar(0.0001);
+        workPos.current.set(0, -10, 0);
+        workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+        ringRef.current.setMatrixAt(i, workMatrix.current);
+        workMatrix.current.compose(workPos.current, workCoreQuat.current, workScale.current);
+        coreRef.current.setMatrixAt(i, workMatrix.current);
+        continue;
+      }
+
+      // Sonar cycle: ring expands and fades, restarts. Majors run wider.
+      const maxR = b.major ? 2.6 : 1.5;
+      const cycle = ((t * (b.major ? 0.55 : 0.75) + b.phase) % (Math.PI * 2)) / (Math.PI * 2);
+      const r = maxR * (0.25 + 0.75 * easeOutCubic(cycle));
+
+      workPos.current.set(b.x, 0.14, b.z);
+      workScale.current.setScalar(r * on);
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+      if (ringRef.current) ringRef.current.setMatrixAt(i, workMatrix.current);
+
+      // Core marker: steady presence under the ring.
+      const cs = (b.major ? 0.42 : 0.3) * on * (1 + 0.12 * Math.sin(t * 2.2 + b.phase));
+      workScale.current.setScalar(cs);
+      workMatrix.current.compose(workPos.current, workCoreQuat.current, workScale.current);
+      if (coreRef.current) coreRef.current.setMatrixAt(i, workMatrix.current);
     }
-    // The core breathes — the twin is awake (state, not decoration).
-    if (coreRef.current) {
-      const s = 1 + 0.1 * Math.sin(clock.elapsedTime * 1.8);
-      coreRef.current.scale.setScalar(s);
-    }
+
+    if (ringRef.current) ringRef.current.instanceMatrix.needsUpdate = true;
+    if (coreRef.current) coreRef.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <group ref={group}>
-      {rings.map(({ r, geo }) => (
-        <lineSegments key={r} geometry={geo} frustumCulled={false}>
-          <lineBasicMaterial color="#D6B45A" transparent opacity={0.34} depthWrite={false} />
-        </lineSegments>
-      ))}
-      <lineSegments geometry={spokes} frustumCulled={false}>
-        <lineBasicMaterial color="#4a5872" transparent opacity={0.22} depthWrite={false} />
-      </lineSegments>
-      <mesh ref={coreRef} position={[0, 0.6, 0]}>
-        <octahedronGeometry args={[1.1]} />
-        <meshStandardMaterial
+    <>
+      <instancedMesh ref={ringRef} args={[undefined, undefined, BEACONS.length]} frustumCulled={false}>
+        <ringGeometry args={[0.86, 1, 40]} />
+        <meshBasicMaterial color="#FF3655" transparent opacity={0.65} side={THREE.DoubleSide} depthWrite={false} />
+      </instancedMesh>
+      <instancedMesh ref={coreRef} args={[undefined, undefined, BEACONS.length]} frustumCulled={false}>
+        <sphereGeometry args={[0.34, 16, 12]} />
+        <meshBasicMaterial color="#FF3655" toneMapped={false} />
+      </instancedMesh>
+    </>
+  );
+}
+
+/* --- Intelligence orbs ------------------------------------------------------
+   The ambient "living city" layer: a handful of small teal lights drifting
+   slowly above the arteries — the presence of live intelligence, felt long
+   before any specific system appears. Restrained: few, dim, slow. */
+
+const ORB_COUNT = 12;
+
+const ORB_SPOTS = (() => {
+  const spots: { x: number; z: number; phase: number; appearAt: number }[] = [];
+  let cursor = 331 % Math.max(1, CITY_SEG_COUNT);
+  let guard = 0;
+  while (spots.length < ORB_COUNT && guard < 60_000) {
+    guard += 1;
+    cursor = (cursor + 977) % CITY_SEG_COUNT;
+    const seg = CITY_SEG[cursor];
+    if (!seg || ![seg[0], seg[1], seg[2], seg[3]].every(Number.isFinite)) continue;
+    const [x, z] = safeProject((seg[0] + seg[2]) / 2, (seg[1] + seg[3]) / 2);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
+    const n = spots.length;
+    spots.push({
+      x,
+      z,
+      phase: (n * 137.5 * Math.PI) / 180,
+      appearAt: ORB_WINDOW[0] + (((n * 53) % 89) / 89) * (ORB_WINDOW[1] - ORB_WINDOW[0]),
+    });
+  }
+  return spots;
+})();
+
+function IntelligenceOrbs() {
+  const coreRef = useRef<THREE.InstancedMesh>(null);
+  const glowRef = useRef<THREE.InstancedMesh>(null);
+
+  const workMatrix = useRef(new THREE.Matrix4());
+  const workPos = useRef(new THREE.Vector3());
+  const workQuat = useRef(new THREE.Quaternion());
+  const workScale = useRef(new THREE.Vector3());
+
+  useLayoutEffect(() => {
+    for (const ref of [coreRef, glowRef]) {
+      const mesh = ref.current;
+      if (!mesh) continue;
+      workPos.current.set(0, -10, 0);
+      workScale.current.setScalar(0.0001);
+      for (let i = 0; i < ORB_SPOTS.length; i++) {
+        workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+        mesh.setMatrixAt(i, workMatrix.current);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+  }, []);
+
+  useFrame(({ clock }) => {
+    const p = getLandingProgress();
+    const t = clock.elapsedTime;
+
+    for (let i = 0; i < ORB_SPOTS.length; i++) {
+      const u = ORB_SPOTS[i];
+      const on = ramp(p, u.appearAt, u.appearAt + 0.06);
+
+      // Slow drift + breathing hover — presence without noise.
+      const x = u.x + Math.sin(t * 0.11 + u.phase) * 2.2;
+      const z = u.z + Math.cos(t * 0.09 + u.phase * 1.7) * 2.2;
+      const y = 3.2 + Math.sin(t * 0.45 + u.phase) * 1.1;
+      const s = on * (0.75 + 0.25 * Math.sin(t * 0.6 + u.phase));
+
+      workPos.current.set(x, y, z);
+      workScale.current.setScalar(Math.max(0.0001, s));
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+      if (coreRef.current) coreRef.current.setMatrixAt(i, workMatrix.current);
+
+      // Halo shell breathes slightly larger than the core.
+      workScale.current.setScalar(Math.max(0.0001, s * 2.4));
+      workMatrix.current.compose(workPos.current, workQuat.current, workScale.current);
+      if (glowRef.current) glowRef.current.setMatrixAt(i, workMatrix.current);
+    }
+    if (coreRef.current) coreRef.current.instanceMatrix.needsUpdate = true;
+    if (glowRef.current) glowRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <>
+      <instancedMesh ref={coreRef} args={[undefined, undefined, ORB_COUNT]} frustumCulled={false}>
+        <sphereGeometry args={[0.22, 14, 10]} />
+        <meshBasicMaterial color="#16F2D4" transparent opacity={0.9} toneMapped={false} depthWrite={false} />
+      </instancedMesh>
+      <instancedMesh ref={glowRef} args={[undefined, undefined, ORB_COUNT]} frustumCulled={false}>
+        <sphereGeometry args={[0.22, 14, 10]} />
+        <meshBasicMaterial
           color="#16F2D4"
-          emissive="#16F2D4"
-          emissiveIntensity={0.5}
-          roughness={0.3}
-          metalness={0.1}
+          transparent
+          opacity={0.07}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
-      </mesh>
-    </group>
+      </instancedMesh>
+    </>
   );
 }
 
@@ -499,4 +850,3 @@ function CinematicCamera() {
 
   return null;
 }
-

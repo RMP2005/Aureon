@@ -26,7 +26,9 @@ export function PanelFrame({
         <h2 className="hud-label text-[var(--color-text-secondary)]">{title}</h2>
         {right}
       </header>
-      <div className={`min-h-0 flex-1 overflow-y-auto ${bodyClassName}`}>
+      <div
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${bodyClassName}`}
+      >
         {children}
       </div>
     </section>

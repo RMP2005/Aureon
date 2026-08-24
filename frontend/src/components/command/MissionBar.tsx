@@ -64,6 +64,12 @@ export default function MissionBar({
             {replay.playing ? 'PLAYING' : 'PAUSED'}
           </span>
           <Link
+            href="/docs"
+            className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+          >
+            GUIDE
+          </Link>
+          <Link
             href="/compare"
             className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
           >
@@ -127,6 +133,12 @@ export default function MissionBar({
           <span className={`h-1.5 w-1.5 rounded-full bg-current ${feedTone.label === 'LIVE' ? 'animate-pulse' : ''}`} />
           {feedTone.label}
         </span>
+        <Link
+          href="/docs"
+          className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"
+        >
+          GUIDE
+        </Link>
         <Link
           href="/compare"
           className="hud-stamp rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-white/20 transition-colors"

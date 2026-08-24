@@ -9,10 +9,10 @@ import { HOSPITALS } from '@/lib/twin/city-data';
 
 /**
  * Selection highlight — a single ring that tracks the selected entity.
- * White for fleet (readable against teal), titanium for hospitals.
+ * White for fleet (readable against teal), infrastructure-blue for hospitals.
  */
 const RING_COLOR_FLEET = new THREE.Color('#EDF2F7');
-const RING_COLOR_HOSPITAL = new THREE.Color('#D6B45A');
+const RING_COLOR_HOSPITAL = new THREE.Color('#4da3ff');
 const RING_COLOR_INCIDENT = new THREE.Color('#FF3655');
 
 export default function SelectionHighlight() {

@@ -4,6 +4,8 @@ import CityRoads from './CityRoads';
 import { HospitalMarkers, StationMarkers } from './CityMarkers';
 import Ambulances from './Ambulances';
 import Incidents from './Incidents';
+import IncidentLabels from './IncidentLabels';
+import RouteFlowLayer from './RouteFlowLayer';
 import SelectionHighlight from './SelectionHighlight';
 import CameraRig from './CameraRig';
 import StatsProbe, { type TwinPerfStats } from './StatsProbe';
@@ -36,9 +38,13 @@ export default function TwinScene({
       <HospitalMarkers />
       <StationMarkers />
 
+      {/* Ambient movement — the streets always carry traffic */}
+      <RouteFlowLayer />
+
       {/* Live layers */}
       <Ambulances />
       <Incidents />
+      <IncidentLabels />
       <SelectionHighlight />
 
       {onStats && <StatsProbe onStats={onStats} />}

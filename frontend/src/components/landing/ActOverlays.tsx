@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ACTS, type ActDef, type HighlightKind } from '@/lib/landing/progress';
 import Hl from '@/components/brand/Hl';
+import LandingCTAs from './LandingCTAs';
 
 /**
  * DOM copy layer for the landing journey (Phase 10C).
@@ -48,19 +48,8 @@ export default function ActOverlays() {
                 </p>
               )}
               {isLast && (
-                <div className="pointer-events-auto mt-12 flex flex-wrap gap-5 justify-center">
-                  <Link
-                    href="/command?intro=1"
-                    className="px-9 py-4 rounded-md bg-teal-core text-black text-[15px] font-semibold tracking-wide hover:brightness-110 hover:shadow-[0_0_28px_rgba(22,242,212,0.28)] transition-all"
-                  >
-                    Enter Command Center →
-                  </Link>
-                  <Link
-                    href="/simulation"
-                    className="px-9 py-4 rounded-md border border-hairline-strong text-[15px] font-medium tracking-wide text-[var(--color-text-primary)] hover:bg-white/5 transition-colors"
-                  >
-                    Run a Simulation
-                  </Link>
+                <div className="mt-12 flex w-full justify-center">
+                  <LandingCTAs />
                 </div>
               )}
             </div>

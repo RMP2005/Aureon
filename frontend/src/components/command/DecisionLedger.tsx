@@ -36,6 +36,9 @@ export default function DecisionLedger() {
   return (
     <PanelFrame
       title="Decision Ledger"
+      /* h-full: fill the constrained grid cell so the body scrolls
+         internally instead of growing past the viewport (audit trail). */
+      className="h-full"
       right={
         <span className="hud-stamp !text-[9px] text-[var(--color-text-muted)]">
           OBSERVED · NOT PREDICTED
