@@ -30,3 +30,9 @@ frontend/.next/
 backend/aureon.db
 backend/aureon.db-shm
 backend/aureon.db-wal
+
+# Generated data caches (regenerable — never runtime-required)
+/cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
