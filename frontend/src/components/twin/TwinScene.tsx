@@ -5,6 +5,7 @@ import { HospitalMarkers, StationMarkers } from './CityMarkers';
 import Ambulances from './Ambulances';
 import Incidents from './Incidents';
 import IncidentLabels from './IncidentLabels';
+import HospitalLabels from './HospitalLabels';
 import RouteFlowLayer from './RouteFlowLayer';
 import SelectionHighlight from './SelectionHighlight';
 import CameraRig from './CameraRig';
@@ -45,6 +46,7 @@ export default function TwinScene({
       <Ambulances />
       <Incidents />
       <IncidentLabels />
+      <HospitalLabels />
       <SelectionHighlight />
 
       {onStats && <StatsProbe onStats={onStats} />}

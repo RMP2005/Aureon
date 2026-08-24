@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { resetAllScrollers } from '@/components/brand/HomeLink';
 import LandingCanvas from '@/components/landing/LandingCanvas';
 import ActOverlays from '@/components/landing/ActOverlays';
 import AureonMark from '@/components/brand/AureonMark';
@@ -39,7 +40,7 @@ function JourneyLanding() {
   // no jump, no flash. Runs on every mount, including client navigations.
   useLayoutEffect(() => {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    resetAllScrollers();
     setLandingProgress(0);
   }, []);
 
@@ -90,9 +91,9 @@ function JourneyLanding() {
 
     // Late-restoration guard: browsers can restore scroll asynchronously
     // AFTER mount. Re-assert the clean state, then measure.
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    resetAllScrollers();
     requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      resetAllScrollers();
       setLandingProgress(0);
       ScrollTrigger.refresh();
     });
@@ -201,7 +202,7 @@ function hideScrollHint(progress: number) {
 function StaticLanding() {
   useLayoutEffect(() => {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    resetAllScrollers();
     setLandingProgress(1);
   }, []);
   return (

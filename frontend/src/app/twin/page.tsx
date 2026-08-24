@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useState } from 'react';
 import Link from 'next/link';
+import { resetAllScrollers } from '@/components/brand/HomeLink';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import TwinCanvas from '@/components/twin/TwinCanvas';
@@ -119,7 +120,7 @@ function TwinPageInner() {
       {/* Way back — temporary scaffolding until command center (10D) */}
       <Link
         href="/"
-        onClick={() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior })}
+        onClick={resetAllScrollers}
         className="absolute right-5 top-5 hud-stamp text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
       >
         ← EXIT TWIN

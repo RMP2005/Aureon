@@ -875,7 +875,10 @@ function LocationField({
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const q = value.trim().toLowerCase();
+  // null query = show the full list (fresh focus on a pre-filled field).
+  // Only actual typing narrows the options.
+  const [query, setQuery] = useState<string | null>(null);
+  const q = (query ?? '').trim().toLowerCase();
   const matches =
     q.length === 0
       ? LOCALITIES
@@ -888,9 +891,13 @@ function LocationField({
         disabled={disabled}
         onChange={(e) => {
           onChange(e.target.value);
+          setQuery(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setQuery(null);
+          setOpen(true);
+        }}
         onBlur={() => setOpen(false)}
         placeholder="Type or pick an area…"
         className={`${FIELD_CLS} placeholder:text-[var(--color-text-muted)]/60`}
@@ -908,6 +915,7 @@ function LocationField({
                   // Select before the input's blur closes the list.
                   e.preventDefault();
                   onChange(l.name);
+                  setQuery(null);
                   setOpen(false);
                 }}
                 className={`flex w-full items-center justify-between px-3 py-2 text-left font-mono text-xs transition-colors ${
