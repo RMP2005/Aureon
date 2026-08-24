@@ -11,14 +11,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   - response siren: a distant two-tone wail whose level tracks the
  *     "pulse" act intensity fed in from scroll progress
  *
- * The AudioContext is created lazily on first user opt-in (autoplay policy)
- * and everything routes through a master gain for clean teardown.
+ * Ambient-first policy (final audio polish): the soundscape attempts to
+ * start immediately so a first-time visitor feels the system is alive. If
+ * the browser's autoplay policy holds the context in "suspended", the hook
+ * waits for the FIRST user interaction (pointer/key/touch/wheel) and resumes
+ * then — no autoplay hacks, no forced playback. The SOUND ON/OFF toggle
+ * remains authoritative: an explicit user opt-out is never overridden.
  */
 export function useCinematicAudio() {
   const [enabled, setEnabled] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const sirenGainRef = useRef<GainNode | null>(null);
   const droneGainRef = useRef<GainNode | null>(null);
+  /** Set when the user explicitly opts out — ambient retry must respect it. */
+  const userOptOutRef = useRef(false);
 
   const build = useCallback(() => {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -84,17 +90,74 @@ export function useCinematicAudio() {
   }, []);
 
   const enable = useCallback(() => {
+    userOptOutRef.current = false;
     build();
     void ctxRef.current?.resume();
     setEnabled(true);
   }, [build]);
 
   const disable = useCallback(() => {
+    userOptOutRef.current = true; // respect the toggle against ambient retry
     if (ctxRef.current?.state === 'running') {
       ctxRef.current.suspend().catch(() => {});
     }
     setEnabled(false);
   }, []);
+
+  /**
+   * Ambient-first startup. Tries to begin immediately (some browsers allow
+   * it); otherwise arms one-time first-interaction listeners and resumes
+   * there — the graceful, policy-compliant path.
+   */
+  useEffect(() => {
+    build();
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+
+    let settled = false;
+    const GESTURES = ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const;
+
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      for (const g of GESTURES) window.removeEventListener(g, onGesture);
+    };
+
+    const attempt = () => {
+      if (userOptOutRef.current) {
+        settle();
+        return;
+      }
+      void ctx
+        .resume()
+        .then(() => {
+          if (userOptOutRef.current) {
+            // User toggled off while we were waiting — stand down.
+            void ctx.suspend().catch(() => {});
+            settle();
+            return;
+          }
+          if (ctx.state === 'running') {
+            setEnabled(true);
+            settle(); // ambient is live — stop listening
+          }
+          // Still suspended: keep waiting for a genuine interaction.
+        })
+        .catch(() => {
+          /* autoplay refused — retry on next gesture */
+        });
+    };
+
+    const onGesture = () => attempt();
+
+    attempt(); // immediate try — works when permissions allow
+    for (const g of GESTURES) window.addEventListener(g, onGesture, { passive: true });
+
+    return () => {
+      settled = true;
+      for (const g of GESTURES) window.removeEventListener(g, onGesture);
+    };
+  }, [build]);
 
   /** Called from scroll updates — smooth, allocation-free. */
   const setIntensity = useCallback((level: number) => {
