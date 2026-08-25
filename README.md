@@ -1,236 +1,483 @@
-# Aureon — Urban Intelligence Operating System
+# Aureon
 
-Aureon is a **digital twin of a living city** with **explainable emergency-dispatch
-intelligence** built in. A simulated Bengaluru breathes in real time — incidents
-spark, ambulances move over the road network, hospitals absorb patients — while
-an AI dispatch strategy makes every allocation decision and *shows its work*.
+<p align="center">
+  <img
+    src="https://readme-typing-svg.demolab.com?font=Space+Mono&weight=600&size=42&duration=2800&pause=1200&color=00D9C0&center=true&vCenter=true&repeat=true&width=650&height=80&lines=AUREON;URBAN+INTELLIGENCE+OPERATING+SYSTEM"
+    alt="AUREON — Urban Intelligence Operating System"
+  />
+</p>
 
-The reference point is mission control, not a dashboard: NASA-grade restraint,
-Gotham-grade operational density, terminal-grade information legibility.
+<p align="center">
+  <img src="https://img.shields.io/badge/LIVE_DEMO-Aureon-00d9c0?style=for-the-badge" alt="Live Demo"/>
+  <img src="https://img.shields.io/badge/STATUS-LIVE-00d9c0?style=for-the-badge" alt="Status"/>
+  <img src="https://img.shields.io/badge/API-HEALTHY-00d9c0?style=for-the-badge" alt="API Health"/>
+  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi" alt="FastAPI"/>
+</p>
 
-> **Live demo path:** open the landing page → *Enter Command Center* →
-> *Start Showcase Demo*. In under two minutes you will watch an incident unfold,
-> watch Aureon dispatch against it, open the decision's evidence, and replay the
-> mission debrief — all from real simulation output. No mock data anywhere.
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React"/>
+  <img src="https://img.shields.io/badge/Three.js-black?style=flat-square&logo=three.js" alt="Three.js"/>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python" alt="Python"/>
+  <img src="https://img.shields.io/badge/NetworkX-3776AB?style=flat-square" alt="NetworkX"/>
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite" alt="SQLite"/>
+  <img src="https://img.shields.io/badge/Vercel-black?style=flat-square&logo=vercel" alt="Vercel"/>
+  <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render" alt="Render"/>
+</p>
+
+<p align="center">
+  <strong>A digital twin of Bengaluru with explainable emergency-dispatch intelligence.</strong>
+</p>
+
+<p align="center">
+  Simulate a living city · Dispatch ambulances · Explain decisions · Replay outcomes
+</p>
+
+<p align="center">
+  <a href="https://aureon-phi.vercel.app">Live Demo</a>
+  ·
+  <a href="https://github.com/RMP2005/Aureon">Source Code</a>
+  ·
+  <a href="https://aureon-vvki.onrender.com/api/v1/health">API Health</a>
+</p>
+
+<p align="center">
+  <img src="assets/aureon-hero.png" alt="Aureon — Urban Intelligence Operating System" width="900"/>
+</p>
+
+<p align="center">
+  <img src="assets/aureon-demo.gif" alt="Aureon showcase demo" width="900"/>
+</p>
 
 ---
 
-## 1. What is Aureon?
+## What is Aureon?
 
-Aureon couples three systems into one product:
+Aureon is an experimental **Urban Intelligence Operating System** built around
+a simulated Bengaluru.
 
-| Layer | What it does |
-|---|---|
-| **Simulation engine** (`simulation/`) | A discrete-time city engine: incident generation, road-network routing (NetworkX/SciPy), ambulance & hospital lifecycles, scenario scripting |
-| **Intelligence layer** (`simulation/src/dispatch/`) | Dispatch strategies that decide *which ambulance* and *which hospital* respond to each incident — with published rationale for every decision |
-| **Operations frontend** (`frontend/`) | A Next.js command center: live 3D twin, decision ledger, mission debrief, evidence replay, baseline comparison |
+Instead of simply visualizing a city, Aureon simulates one.
 
-The backend (`backend/`) binds them: FastAPI owns run lifecycle, persistence,
-and streaming state to the frontend.
+Incidents emerge, ambulances move through a road network, hospitals receive
+patients, and dispatch strategies make allocation decisions under changing
+conditions.
 
-## 2. Problem statement
+The key idea is **explainable decision-making**.
 
-Emergency dispatch is a real-time allocation problem under uncertainty:
+Aureon doesn't only show what happened. It records:
 
-- Incidents arrive stochastically; fleets are finite and unevenly positioned.
-- Choosing the *nearest* unit greedily can strip coverage from the next crisis.
-- Human operators have seconds — not minutes — to weigh trade-offs.
-- After the fact, cities rarely can answer *"why was this unit sent?"*
+- what decision was made
+- why it was made
+- which alternatives were considered
+- what happened afterwards
 
-Most "smart city" dashboards visualize. They don't **decide**, and they
-don't **explain**. Aureon does both, on the record.
+> **Simulate the city. Make the decision. Preserve the evidence.**
 
-## 3. Product vision
+---
 
-An **Urban Intelligence Operating System**: the city is the process, Aureon is
-the kernel. The product principles:
+## Why Aureon?
 
-1. **Observed, not predicted.** The UI renders only what the engine actually
-   did. Decision panels quote the engine's own rationale verbatim.
-2. **Evidence over claims.** Every run is event-recorded; any moment can be
-   replayed frame-accurately as proof.
-3. **Operator wins.** Camera automation (intro sweeps, guided debrief) yields
-   instantly to human input.
-4. **Legibility contract.** Color carries meaning: teal = operational state,
-   violet = AI reasoning only, red = true critical events, titanium =
-   infrastructure. Nothing glows without a reason.
+Emergency dispatch is a real-time allocation problem under uncertainty.
 
-## 4. Architecture overview
+A simple system might ask:
 
-```
-┌─────────────────────────────  frontend (Next.js)  ─────────────────────────┐
-│  Landing (cinematic scroll)   Command Center (/command)   Compare / Analytics│
-│  ├── three.js digital twin    ├── Mission bar · sim clock                  │
-│  │   instanced fleet/city     ├── Incident queue · Fleet · Hospitals       │
-│  ├── GSAP act choreography    ├── Decision Ledger → Explain panel           │
-│  └── reduced-motion fallback  ├── Mission Debrief + Evidence Replay         │
-│                               └── 1s poll feed w/ STALE / FEED LOST states  │
-└───────────────────────────────┬──────────────────────────────────────────────┘
-                                │ REST (envelope: {status,data,error}) · 1 Hz poll
-┌───────────────────────────────┴──────────────────────────────────────────────┐
-│                        backend (FastAPI + Uvicorn)                            │
-│  routes/simulation.py ─ run CRUD · scenarios · demos · recordings             │
-│  services/ ─ SimulationService (background runs) · RunStore (SQLite WAL)      │
-│              RunRecorder (event journal) · ScenarioLibrary · DemoLibrary      │
-└───────────────────────────────┬──────────────────────────────────────────────┘
-                                │ in-process engine threads
-┌───────────────────────────────┴──────────────────────────────────────────────┐
-│                     simulation engine (pure Python package)                   │
-│  CitySimulationEngine ─ tick loop · incident generator · road network         │
-│  Dispatch strategies ─ HybridAureon (default) · Adaptive · Baseline           │
-│  Every strategy returns DispatchDecision(rationale, metadata=…)               │
-└───────────────────────────────────────────────────────────────────────────────┘
-```
+> Which ambulance is closest?
 
-**Why this shape?** The engine is dependency-free and deterministic, so it can
-run identically inside backend threads, tests, or benchmarks. The backend adds
-only lifecycle and persistence — never business logic. The frontend stays a
-pure consumer of recorded facts.
+But the closest ambulance may be the only available unit protecting another
+part of the city.
 
-## 5. Digital twin pipeline
+Aureon explores a broader decision space:
 
-1. **World construction** — `CitySimulationEngine` builds the road graph,
-   hospital set, and ambulance fleet from scenario parameters (fixed seed).
-2. **Tick loop** — each `step()` advances sim time: new incidents are drawn
-   from a seeded stochastic process, units move along real road-network
-   shortest paths, hospital capacity absorbs patients.
-3. **Live feed** — the backend samples engine state at `wall_clock_factor`
-   pacing and exposes `/state` snapshots; the frontend polls at 1 Hz.
-4. **Twin rendering** — React never re-renders per tick. Ambulances, stations,
-   and hospitals are `InstancedMesh`es driven from transient buffers inside
-   `useFrame`; React state carries only selection and low-frequency UI.
-5. **Recording** — a `RunRecorder` journals frames + events (INCIDENT /
-   DISPATCH / ADMISSION / RESOLVED with incident linkage and measured response
-   times) into SQLite, compressed.
+```text
+Response ETA
+      +
+Vehicle capability
+      +
+Fleet coverage
+      +
+Demand conditions
+      ↓
+Dispatch Decision
+The goal is not to claim that one strategy is universally optimal.
+The goal is to make the trade-offs visible, explainable and measurable.
+Experience Aureon
+The recommended way to experience the project is:
+Landing Page
+      ↓
+Enter Command Center
+      ↓
+Start Showcase Demo
+      ↓
+Watch incidents unfold
+      ↓
+Inspect Decision Ledger
+      ↓
+Explain a decision
+      ↓
+Let the run complete
+      ↓
+Evidence Replay
+      ↓
+Mission Debrief
+      ↓
+Compare strategies
+Suggested first run
+Open the live demo and click Enter Command Center.
+From there:
+1. Start Showcase Demo
+2. Let the simulation run for a moment
+3. Watch incidents appear on the map and incident queue
+4. Watch ambulances move through the road network
+5. Open the Decision Ledger
+6. Select EXPLAIN on a decision
+7. Let the simulation finish
+8. Open Evidence Replay
+9. Explore the Mission Debrief
+10. Use COMPARE to evaluate the dispatch strategy
+The showcase uses a curated scenario backed by the simulation engine rather than
+a prerecorded UI animation.
+Cold Start Note
+The public frontend is deployed on Vercel while the Python backend is deployed
+on Render's Free tier.
+After a period of inactivity, the backend may temporarily spin down.
+When that happens, the frontend can initially show:
+BACKEND OFFLINE
+CONNECTING
+FEED LOST
+If this happens:
+Wait around 1–2 minutes, then refresh once.
+Once the backend wakes, the Command Center and showcase should operate normally.
+This is a hosting cold-start limitation of the public demo environment, not a
+failure of the simulation itself.
+For production-scale deployment, the backend should run on infrastructure
+without Free-tier spin-down behaviour and with durable shared storage.
+Command Center
+<p align="center">
+  <img src="assets/screenshots/command-center.png" alt="Aureon Command Center" width="900"/>
+</p>
 
-**Why instancing?** Hundreds of vehicles must animate at 60 FPS. Per-entity
-React components would thrash reconciliation; instanced meshes update matrices
-on the GPU timeline instead.
+The Command Center is Aureon's primary operational interface.
+It combines:
+- Digital Twin — live simulated city
+- Incident Queue — active emergency events
+- Fleet — ambulance state
+- Hospitals — facility state
+- Decision Ledger — dispatch decisions
+- Entity Inspector — detailed entity information
+- Mission Timeline — simulation progress
+The interface is designed around mission control rather than a conventional
+analytics dashboard.
+Digital Twin
+The central 3D scene represents the simulated city.
+It contains:
+- road infrastructure
+- ambulances
+- hospitals
+- stations
+- active incidents
+- route movement
+- operational state
+The simulation engine advances the city through discrete steps while the
+frontend renders the resulting state.
+Repeated entities such as vehicles and infrastructure are rendered using
+GPU-friendly techniques so the scene can remain responsive while many entities
+are active.
+Dispatch Intelligence
+Aureon supports multiple dispatch strategies so decisions can be benchmarked
+rather than judged in isolation.
+Strategy	Purpose
+NearestAvailableStrategy	Greedy proximity-based baseline
+AdaptiveAureonStrategy	Assignment with coverage preservation
+PredictiveStrategy	Demand-oriented positioning
+HybridAureonStrategy	Combines multiple decision signals
 
-## 6. AI dispatch intelligence
 
-Every strategy implements one interface — `dispatch(incident, fleet, hospitals)`
-→ `DispatchDecision` — so intelligence is **swappable and benchmarkable**:
-
-| Strategy | Idea |
-|---|---|
-| `NearestAvailableStrategy` | Greedy baseline: closest capable unit |
-| `AdaptiveAureonStrategy` | Batch assignment + coverage preservation |
-| `PredictiveStrategy` | Demand-model-aware positioning |
-| `HybridAureonStrategy` (**default**) | Coverage score + predictive demand + optimization pass, arbitrated per incident |
-
-**Why hybrid?** Single-signal strategies fail predictably: greedy nearest
-erodes coverage; pure optimization is slow under load. The hybrid arbitrates
-cheap heuristics first and spends optimization only when candidates conflict.
-The baseline strategies remain first-class so every improvement is measurable
-against them (`/compare`).
-
-## 7. Explainability system
-
-Explainability is a **contract at the strategy interface**, not a UI garnish:
-
-```python
+The primary showcase strategy is:
+HybridAureonStrategy
+A decision can incorporate signals such as:
+Response ETA
+Vehicle capability
+Coverage preservation
+Demand conditions
+Alternative candidates
+        ↓
+Dispatch Decision
+The system therefore explores decisions beyond simply selecting the nearest
+available ambulance.
+Explainable Decisions
+Explainability exists at the decision layer rather than being added only as
+frontend copy.
+A strategy publishes structured information alongside its selected unit.
 DispatchDecision(
     ambulance_id="AMB-07",
-    rationale="Closest capable unit … Coverage: west zone thinning",
-    metadata={            # published by the strategy itself
+    rationale="Closest capable unit while preserving west-zone coverage",
+    metadata={
         "mode": "hybrid",
-        "factors": ["coverage_score", "eta_delta", "capability_match"],
-        "alternatives": [{"id": "AMB-12", "rejected_reason": "…"}, …],
-        "tradeoff": "…",
-    },
+        "factors": [
+            "coverage_score",
+            "eta_delta",
+            "capability_match"
+        ],
+        "alternatives": [...],
+        "tradeoff": "Preserves regional coverage"
+    }
 )
-```
+The frontend displays the reasoning supplied by the decision engine.
+It does not independently invent a justification.
+This creates a direct chain:
+Dispatch Strategy
+       ↓
+Decision + Rationale
+       ↓
+Event Journal
+       ↓
+Backend
+       ↓
+Decision Ledger
+       ↓
+Operator Explanation
+Decision Ledger & Evidence Replay
+The Decision Ledger acts as Aureon's operational audit trail.
+A decision can expose:
+- selected ambulance
+- ETA
+- capability match
+- coverage state
+- alternatives
+- rejected candidates
+- trade-offs
+- timestamps
+- outcome
+<p align="center">
+  <img src="assets/screenshots/demo-run.png" alt="Aureon Demo Run" width="900"/>
+</p>
 
-- The **Decision Ledger** logs each committed decision with mode stamps.
-- **Explain This Decision** renders *only* engine-published fields — the UI
-  cannot invent a justification it wasn't given. Live decisions honestly show
-  `[ EVIDENCE AT DEBRIEF ]` until the run completes.
-- The **Mission Debrief** reconstructs each incident as a chapter
-  (reported → dispatched → closed) from the recorder journal, with measured
-  response times — answering *what happened, why, and with what outcome* in
-  one screen.
+Once a run completes, the recorded events become available through the Mission
+Debrief and Evidence Replay.
+<p align="center">
+  <img src="assets/screenshots/evidence-replay.png" alt="Aureon Evidence Replay" width="900"/>
+</p>
 
-## 8. Demo walkthrough (2–3 minutes)
+The replay is based on recorded simulation output rather than simply executing
+the same scenario again.
+Live Run
+   ↓
+Recorded Events
+   ↓
+Mission Debrief
+   ↓
+Evidence Replay
+This lets the operator understand not only the final result, but the sequence
+of decisions that produced it.
+Compare & Custom Scenarios
+Aureon includes a comparison surface for evaluating different dispatch
+strategies.
+<p align="center">
+  <img src="assets/screenshots/compare.png" alt="Aureon Compare" width="900"/>
+</p>
 
-Curated showcases live server-side (`DemoLibrary`) and launch as **real,
-deterministic engine runs** — fixed seed, named scenario, auto-paced:
+The comparison experience can be used to explore differences in:
+- response behaviour
+- coverage
+- capability matching
+- incident completion
+- strategy decisions
+Custom Scenario Simulator
+The Custom Scenario Simulator allows users to create their own emergency
+scenario rather than relying only on curated presets.
+Users can specify:
+- incident type
+- location
+- severity
+- traffic/context
+- weather/context
+- time/context
+The simulator then produces a decision-oriented result containing information
+such as:
+- selected ambulance
+- expected response time
+- recommended hospital
+- decision factors
+- reasoning behind the assignment
+Locations are resolved against Aureon's configured locality and facility data,
+while free-text locations can also be accepted by the simulator.
+The feature is designed to demonstrate how the same decision engine responds to
+different conditions rather than showing one hard-coded outcome.
+Architecture
+┌──────────────────────────────────────────────────────────────┐
+│                         FRONTEND                             │
+│                                                              │
+│  Landing · Command Center · Compare                          │
+│                                                              │
+│  Three.js Digital Twin                                       │
+│  Incident Queue · Fleet · Hospitals                         │
+│  Decision Ledger · Evidence Replay                           │
+└─────────────────────────────┬────────────────────────────────┘
+                              │
+                              │ REST API
+                              │ 1 Hz state polling
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                          BACKEND                             │
+│                                                              │
+│  FastAPI                                                     │
+│  Run lifecycle                                               │
+│  Scenario library                                            │
+│  Demo library                                                │
+│  Persistence                                                 │
+│  Event recording                                             │
+└─────────────────────────────┬────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     SIMULATION ENGINE                        │
+│                                                              │
+│  Incident generation                                         │
+│  Road network                                                 │
+│  Ambulance lifecycle                                          │
+│  Hospital lifecycle                                           │
+│  Dispatch strategies                                          │
+│  Event journal                                                │
+└──────────────────────────────────────────────────────────────┘
+Simulation pipeline
+Scenario
+   ↓
+City Construction
+   ↓
+Incident Generation
+   ↓
+Dispatch Decision
+   ↓
+Ambulance Routing
+   ↓
+Hospital Assignment
+   ↓
+Event Recording
+   ↓
+Frontend State Feed
+   ↓
+Mission Debrief
+Seeded scenarios make behaviour reproducible for demonstrations, testing and
+benchmarking.
+Tech Stack
+Layer	Technology
+Frontend	Next.js 15, React 19
+3D	Three.js, React Three Fiber
+Animation	GSAP, ScrollTrigger
+State	Zustand
+Backend	FastAPI, Uvicorn
+Simulation	Python
+Numerical Computing	NumPy, SciPy
+Graph Algorithms	NetworkX
+ML	scikit-learn / XGBoost
+Persistence	SQLite
+Testing	Pytest
+Frontend Deployment	Vercel
+Backend Deployment	Render
 
-1. Open the landing page and click **Enter Command Center**
-   (the camera sweeps down from the hero framing into operations).
-2. Click **▶ Start Showcase Demo** — e.g. *Mass Casualty Response*
-   (a `◈ SHOWCASE` chip marks curated runs).
-3. Watch incidents appear on the twin and in the queue; decisions stream into
-   the **Decision Ledger**.
-4. Click **EXPLAIN** on any ledger row — rationale, factors, trade-offs,
-   rejected alternatives.
-5. When the run ends, click **▶ Evidence Replay**, then step through the
-   **Mission Debrief** chapters (toggle **GUIDED** to let the camera follow).
-6. Click **COMPARE →** to measure Aureon against the baseline strategy.
 
-From source, the same path works headless:
-
-```bash
-cd backend && uv run uvicorn src.main:app --reload
-curl -s localhost:8000/api/v1/simulation/demos | jq
-curl -s -X POST localhost:8000/api/v1/simulation/demos/default/launch | jq
-```
-
-Screenshots for press/portfolio should be captured from this exact path:
-landing hero, command center mid-demo, decision explain panel, debrief chapters.
-
-## 9. Technical stack
-
-| Component | Technology | Why |
-|---|---|---|
-| Simulation | Python 3.11+, NumPy, SciPy, NetworkX | Deterministic numerics; graph routing on real road topology |
-| ML (optional) | scikit-learn, XGBoost | Demand prediction & clustering behind feature flags |
-| Backend | FastAPI, Uvicorn | Async API with typed envelopes; background run threads |
-| Persistence | SQLite (WAL mode), zero ORM | Single-file ops simplicity, safe concurrent reads, trivial backups |
-| Frontend | Next.js 15, React 19 | App router, server-safe shells around client instruments |
-| 3D | three.js via @react-three/fiber | Declarative scene graph, imperative performance escape hatches |
-| Motion | GSAP + ScrollTrigger | Scrubbed cinematic acts tied to scroll position |
-| State | Zustand | Minimal stores where React re-render cost is acceptable |
-
-## 10. Setup instructions
-
-Prerequisites: Node.js 20+, Python 3.11+ ([uv](https://docs.astral.sh/uv/) recommended), Make.
-
-```bash
-# 1. Configure
+Deployment
+Aureon's public deployment is split between frontend and backend:
+                  USER
+                    │
+                    ▼
+             ┌──────────────┐
+             │   Vercel     │
+             │  Next.js     │
+             │  Frontend    │
+             └──────┬───────┘
+                    │
+                  REST
+                    │
+                    ▼
+             ┌──────────────┐
+             │   Render     │
+             │   FastAPI    │
+             │ Simulation   │
+             │   SQLite     │
+             └──────────────┘
+The frontend receives the backend URL through environment configuration.
+Important deployment variables include:
+NEXT_PUBLIC_API_URL
+NEXT_PUBLIC_WS_URL
+CORS_ORIGINS
+DEBUG
+PORT
+Production secrets should never be committed to the repository.
+Local Development
+Requirements
+- Node.js 20+
+- Python 3.11+
+- uv
+- Make
+- Docker (optional)
+Configure
 cp .env.example .env
-
-# 2. Full stack via Docker
-make dev            # frontend :3000 · backend :8000
-make dev-down
-
-# — or run pieces locally —
-make backend-dev    # FastAPI on :8000
-make frontend-dev   # Next.js on :3000
-
-# 3. Tests
-(cd backend && uv run pytest -q)                    # API/persistence suite
-(cd simulation && PYTHONPATH=.. uv run pytest -q)   # engine suite
-(cd frontend && npm run type-check && npm run build)
-```
-
-### Key engineering decisions (and why)
-
-- **Determinism first.** Seeded generators mean identical inputs reproduce
-  identical worlds — prerequisites for evidence, demos, and regression tests.
-- **SQLite over Postgres (for now).** Aureon is a showcase-grade system;
-  single-file storage keeps setup friction near zero. WAL mode gives the
-  concurrent read pattern the 1 Hz poll needs. The store interface isolates
-  this choice for a future swap.
-- **Polling over websockets.** A 1 Hz envelope poll keeps the client simple,
-  survives proxy timeouts, and powers honest feed-health semantics
-  (STALE at 2.5 s, FEED LOST at 6 s) derived from actual poll age.
-- **Event recording over re-simulation.** Debrief/replay read what happened,
-  they don't recompute it — evidence must be immutable.
-- **UI renders engine words.** All explanation copy originates in strategy
-  metadata; the frontend is forbidden from synthesizing justifications.
-- **Motion budgets.** One hero gesture per arrival (intro sweep, act fades);
-  everything else respects `prefers-reduced-motion`.
-
-Further docs: [Architecture](docs/architecture.md) ·
-[API Contracts](docs/api-contracts.md) · [Docs Home](docs/README.md)
+Full stack
+make dev
+Expected services:
+Frontend → http://localhost:3000
+Backend  → http://localhost:8000
+Individual services
+make backend-dev
+make frontend-dev
+Tests
+cd backend
+uv run pytest -q
+cd simulation
+PYTHONPATH=.. uv run pytest -q
+cd frontend
+npm run type-check
+npm run build
+Data, Sources & Scope
+Aureon is a simulation and research-oriented prototype.
+The city, incidents, fleet behaviour and emergency outcomes are simulated for
+experimentation and demonstration. The system should not be interpreted as
+real-world emergency dispatch infrastructure.
+The project builds on the following open-source technologies and documentation:
+- Next.js
+- React
+- FastAPI
+- Uvicorn
+- NumPy
+- SciPy
+- NetworkX
+- scikit-learn
+- XGBoost
+- Three.js
+- React Three Fiber
+- GSAP
+- Zustand
+- SQLite
+- Vercel
+- Render
+Where geographic/reference data is derived from OpenStreetMap, attribution is
+provided in accordance with the applicable OpenStreetMap licence requirements.
+Limitations
+Aureon is currently a showcase and research prototype.
+Known limitations include:
+- simulated rather than live emergency data
+- Render Free-tier cold starts
+- SQLite-based persistence
+- single-instance backend architecture
+- REST polling rather than WebSockets
+- limited production-scale concurrency
+- deterministic showcase scenarios
+The system is intended to explore:
+simulation, resource allocation, explainability, digital twins and
+decision-support interfaces.
+It is not intended to replace trained emergency operators or provide
+operational medical or emergency-response instructions.
+Roadmap
+Future directions include:
+- live traffic integration
+- richer demand prediction
+- larger geographic datasets
+- real-time WebSocket telemetry
+- persistent production database
+- multi-instance simulation workers
+- larger-scale strategy benchmarking
+- experiment tracking
+- multi-city simulation
+- richer hospital and fleet intelligence
+- production authentication and observability
