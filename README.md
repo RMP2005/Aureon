@@ -177,20 +177,16 @@ For production-scale deployment, the backend should run on infrastructure withou
 
 ## 📸 Screenshots
 
-<!-- Add your GitHub-uploaded screenshots below this line -->
+<img width="2940" height="1670" alt="image" src="https://github.com/user-attachments/assets/380233cf-e9a1-406f-b764-d9ba0ce6d2ff" />
 
-<!--
-Suggested order:
+<img width="2940" height="1676" alt="image" src="https://github.com/user-attachments/assets/f611e7f7-4702-43b7-9819-6b00689c26fe" />
 
-1. Landing / Hero
-2. Command Center
-3. Demo Run
-4. Evidence Replay
-5. Compare / Custom Scenario
-6. Mobile View
--->
+<img width="1468" height="838" alt="image" src="https://github.com/user-attachments/assets/1dba242e-5978-4440-b93b-e5b14576ded1" />
 
-<!-- Add uploaded images here -->
+<img width="1469" height="828" alt="image" src="https://github.com/user-attachments/assets/d13347c8-8479-48be-8c20-448cfd554d7d" />
+
+
+
 
 ---
 
