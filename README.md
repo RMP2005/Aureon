@@ -177,9 +177,8 @@ For production-scale deployment, the backend should run on infrastructure withou
 
 ## Command Center
 
-<p align="center">
-  <img src="assets/screenshots/command-center.png" alt="Aureon Command Center" width="900"/>
-</p>
+<img width="1280" height="727" alt="image" src="https://github.com/user-attachments/assets/fd9bfd58-72d7-48f0-8b84-522ed1a85fd0" />
+
 
 The Command Center is Aureon's primary operational interface.
 
@@ -309,17 +308,15 @@ A decision can expose:
 
 ### Demo Run
 
-<p align="center">
-  <img src="assets/screenshots/demo-run.png" alt="Aureon Demo Run" width="900"/>
-</p>
+<img width="1280" height="730" alt="image" src="https://github.com/user-attachments/assets/f153124e-368e-4db9-9e75-6aecd23dfd0e" />
+
 
 Once a run completes, the recorded events become available through the Mission Debrief and Evidence Replay.
 
 ### Evidence Replay
 
-<p align="center">
-  <img src="assets/screenshots/evidence-replay.png" alt="Aureon Evidence Replay" width="900"/>
-</p>
+<img width="1280" height="731" alt="image" src="https://github.com/user-attachments/assets/c30fa739-5163-47ec-a967-cea0d1fc039d" />
+
 
 The replay is based on recorded simulation output rather than simply executing the same scenario again.
 
@@ -341,9 +338,7 @@ This lets the operator understand not only the final result, but the sequence of
 
 Aureon includes a comparison surface for evaluating different dispatch strategies.
 
-<p align="center">
-  <img src="assets/screenshots/compare.png" alt="Aureon Compare" width="900"/>
-</p>
+<img width="1280" height="721" alt="image" src="https://github.com/user-attachments/assets/5e20ffe9-e367-463f-b75e-bbe32f1d3e28" />
 
 The comparison experience can be used to explore differences in:
 
