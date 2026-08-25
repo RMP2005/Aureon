@@ -8,20 +8,20 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/LIVE_DEMO-Aureon-00d9c0?style=for-the-badge" alt="Live Demo"/>
-  <img src="https://img.shields.io/badge/STATUS-LIVE-00d9c0?style=for-the-badge" alt="Status"/>
-  <img src="https://img.shields.io/badge/API-HEALTHY-00d9c0?style=for-the-badge" alt="API Health"/>
-  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/LIVE_DEMO-Aureon-00D9C0?style=for-the-badge" alt="Live Demo"/>
+  <img src="https://img.shields.io/badge/STATUS-LIVE-7C3AED?style=for-the-badge" alt="Status"/>
+  <img src="https://img.shields.io/badge/API-HEALTHY-22C55E?style=for-the-badge" alt="API Health"/>
+  <img src="https://img.shields.io/badge/Next.js-15-111827?style=for-the-badge&logo=next.js" alt="Next.js"/>
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi" alt="FastAPI"/>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React"/>
-  <img src="https://img.shields.io/badge/Three.js-black?style=flat-square&logo=three.js" alt="Three.js"/>
+  <img src="https://img.shields.io/badge/Three.js-000000?style=flat-square&logo=three.js" alt="Three.js"/>
   <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python" alt="Python"/>
   <img src="https://img.shields.io/badge/NetworkX-3776AB?style=flat-square" alt="NetworkX"/>
   <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite" alt="SQLite"/>
-  <img src="https://img.shields.io/badge/Vercel-black?style=flat-square&logo=vercel" alt="Vercel"/>
+  <img src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel" alt="Vercel"/>
   <img src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render" alt="Render"/>
 </p>
 
@@ -51,7 +51,7 @@
 
 ---
 
-## What is Aureon?
+## 🏙️ What is Aureon?
 
 Aureon is an experimental **Urban Intelligence Operating System** built around a simulated Bengaluru.
 
@@ -72,7 +72,7 @@ Aureon records:
 
 ---
 
-## Why Aureon?
+## 🧠 Why Aureon?
 
 Emergency dispatch is a real-time allocation problem under uncertainty.
 
@@ -86,13 +86,13 @@ Aureon explores a broader decision space:
 
 ```text
 Response ETA
-      +
+     +
 Vehicle capability
-      +
+     +
 Fleet coverage
-      +
+     +
 Demand conditions
-      ↓
+     ↓
 Dispatch Decision
 ```
 
@@ -102,7 +102,7 @@ The goal is to make the trade-offs **visible, explainable and measurable**.
 
 ---
 
-## Experience Aureon
+## 🚀 Experience Aureon
 
 The recommended way to experience the project is:
 
@@ -128,7 +128,7 @@ Mission Debrief
 Compare strategies
 ```
 
-### Suggested first run
+### Suggested First Run
 
 1. Open the live demo and click **Enter Command Center**
 2. Click **Start Showcase Demo**
@@ -146,7 +146,7 @@ The showcase uses a curated scenario backed by the actual simulation engine rath
 
 ---
 
-## Cold Start & Public Demo Notes
+## 💤 Cold Start & Public Demo Notes
 
 The public frontend is deployed on Vercel while the Python backend currently runs on Render's Free tier.
 
@@ -175,10 +175,26 @@ For production-scale deployment, the backend should run on infrastructure withou
 
 ---
 
-## Command Center
+## 📸 Screenshots
 
-<img width="1280" height="727" alt="image" src="https://github.com/user-attachments/assets/fd9bfd58-72d7-48f0-8b84-522ed1a85fd0" />
+<!-- Add your GitHub-uploaded screenshots below this line -->
 
+<!--
+Suggested order:
+
+1. Landing / Hero
+2. Command Center
+3. Demo Run
+4. Evidence Replay
+5. Compare / Custom Scenario
+6. Mobile View
+-->
+
+<!-- Add uploaded images here -->
+
+---
+
+## 🎛️ Command Center
 
 The Command Center is Aureon's primary operational interface.
 
@@ -194,7 +210,7 @@ It combines:
 
 The interface is intentionally designed around mission control rather than a conventional analytics dashboard.
 
-### Digital Twin
+### 🌐 Digital Twin
 
 The central 3D scene represents the simulated city.
 
@@ -214,7 +230,7 @@ Repeated entities such as vehicles and infrastructure are rendered using GPU-fri
 
 ---
 
-## Dispatch Intelligence
+## 🚑 Dispatch Intelligence
 
 Aureon supports multiple dispatch strategies so that decisions can be benchmarked rather than judged in isolation.
 
@@ -235,7 +251,7 @@ Vehicle capability
 Coverage preservation
 Demand conditions
 Alternative candidates
-        ↓
+     ↓
 Dispatch Decision
 ```
 
@@ -243,7 +259,7 @@ The system therefore explores decisions beyond simply selecting the nearest avai
 
 ---
 
-## Explainable Decisions
+## 🔍 Explainable Decisions
 
 Explainability exists at the decision layer rather than being added only as frontend copy.
 
@@ -274,15 +290,15 @@ The resulting chain is:
 
 ```text
 Dispatch Strategy
-       ↓
+      ↓
 Decision + Rationale
-       ↓
+      ↓
 Event Journal
-       ↓
+      ↓
 Backend
-       ↓
+      ↓
 Decision Ledger
-       ↓
+      ↓
 Operator Explanation
 ```
 
@@ -290,7 +306,7 @@ This makes explainability part of the simulation architecture rather than simply
 
 ---
 
-## Decision Ledger & Evidence Replay
+## 📋 Decision Ledger & Evidence Replay
 
 The Decision Ledger acts as Aureon's operational audit trail.
 
@@ -306,17 +322,7 @@ A decision can expose:
 - timestamps
 - outcome
 
-### Demo Run
-
-<img width="1280" height="730" alt="image" src="https://github.com/user-attachments/assets/f153124e-368e-4db9-9e75-6aecd23dfd0e" />
-
-
 Once a run completes, the recorded events become available through the Mission Debrief and Evidence Replay.
-
-### Evidence Replay
-
-<img width="1280" height="731" alt="image" src="https://github.com/user-attachments/assets/c30fa739-5163-47ec-a967-cea0d1fc039d" />
-
 
 The replay is based on recorded simulation output rather than simply executing the same scenario again.
 
@@ -334,11 +340,9 @@ This lets the operator understand not only the final result, but the sequence of
 
 ---
 
-## Compare & Custom Scenarios
+## ⚖️ Compare & Custom Scenarios
 
 Aureon includes a comparison surface for evaluating different dispatch strategies.
-
-<img width="1280" height="721" alt="image" src="https://github.com/user-attachments/assets/5e20ffe9-e367-463f-b75e-bbe32f1d3e28" />
 
 The comparison experience can be used to explore differences in:
 
@@ -348,7 +352,7 @@ The comparison experience can be used to explore differences in:
 - incident completion
 - strategy decisions
 
-### Custom Scenario Simulator
+### 🧪 Custom Scenario Simulator
 
 The Custom Scenario Simulator allows users to create their own emergency scenario rather than relying only on curated presets.
 
@@ -375,13 +379,13 @@ The feature demonstrates how the same decision engine responds to changing condi
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │                         FRONTEND                             │
 │                                                              │
-│  Landing · Command Center · Compare                          │
+│  Landing · Command Center · Compare                         │
 │                                                              │
 │  Three.js Digital Twin                                       │
 │  Incident Queue · Fleet · Hospitals                         │
@@ -415,25 +419,25 @@ The feature demonstrates how the same decision engine responds to changing condi
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Simulation pipeline
+### 🔄 Simulation Pipeline
 
 ```text
 Scenario
-   ↓
+  ↓
 City Construction
-   ↓
+  ↓
 Incident Generation
-   ↓
+  ↓
 Dispatch Decision
-   ↓
+  ↓
 Ambulance Routing
-   ↓
+  ↓
 Hospital Assignment
-   ↓
+  ↓
 Event Recording
-   ↓
+  ↓
 Frontend State Feed
-   ↓
+  ↓
 Mission Debrief
 ```
 
@@ -441,7 +445,7 @@ Seeded scenarios make behaviour reproducible for demonstrations, testing and ben
 
 ---
 
-## Tech Stack
+## 🧰 Tech Stack
 
 | Layer | Technology |
 | --- | --- |
@@ -461,7 +465,7 @@ Seeded scenarios make behaviour reproducible for demonstrations, testing and ben
 
 ---
 
-## Deployment
+## ☁️ Deployment
 
 Aureon's public deployment is split between frontend and backend:
 
@@ -502,7 +506,7 @@ Production secrets should never be committed to the repository.
 
 ---
 
-## Local Development
+## 💻 Local Development
 
 ### Requirements
 
@@ -518,7 +522,7 @@ Production secrets should never be committed to the repository.
 cp .env.example .env
 ```
 
-### Full stack
+### Full Stack
 
 ```bash
 make dev
@@ -531,7 +535,7 @@ Frontend → http://localhost:3000
 Backend  → http://localhost:8000
 ```
 
-### Individual services
+### Individual Services
 
 ```bash
 make backend-dev
@@ -554,7 +558,7 @@ npm run build
 
 ---
 
-## Data, Sources & Scope
+## 📚 Data, Sources & Scope
 
 Aureon is a simulation and research-oriented prototype.
 
@@ -562,7 +566,7 @@ The city, incidents, fleet behaviour and emergency outcomes are simulated for ex
 
 The system should **not** be interpreted as real-world emergency dispatch infrastructure.
 
-### Technology documentation
+### 🔗 Technology Documentation
 
 - Next.js — https://nextjs.org/docs
 - React — https://react.dev/
@@ -583,7 +587,7 @@ The system should **not** be interpreted as real-world emergency dispatch infras
 
 Where geographic/reference data is derived from OpenStreetMap, attribution is provided in accordance with the applicable OpenStreetMap licence requirements.
 
-### Scope
+### 🌍 Scope
 
 Aureon explores:
 
@@ -600,7 +604,7 @@ It is not intended to replace trained emergency operators or provide operational
 
 ---
 
-## Limitations
+## ⚠️ Limitations
 
 Aureon is currently a showcase and research prototype.
 
@@ -618,7 +622,7 @@ These constraints are intentional trade-offs for a lightweight, reproducible res
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
 Future directions include:
 
@@ -636,9 +640,8 @@ Future directions include:
 - deeper observability
 
 ---
----
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License.
 
