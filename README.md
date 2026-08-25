@@ -53,6 +53,8 @@
 
 ## 🏙️ What is Aureon?
 
+Visit to find out : https://aureon-phi.vercel.app/
+
 Aureon is an experimental **Urban Intelligence Operating System** built around a simulated Bengaluru.
 
 Instead of simply visualizing a city, Aureon simulates one.
