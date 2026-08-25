@@ -2,7 +2,7 @@
 
 <p align="center">
   <img
-    src="https://readme-typing-svg.demolab.com?font=Space+Mono&weight=600&size=42&duration=2800&pause=1200&color=00D9C0&center=true&vCenter=true&repeat=true&width=650&height=80&lines=AUREON;URBAN+INTELLIGENCE+OPERATING+SYSTEM"
+    src="https://readme-typing-svg.demolab.com?font=Space+Mono&weight=600&size=34&duration=2800&pause=1200&color=00D9C0&center=true&vCenter=true&repeat=true&width=1000&height=90&lines=AUREON;URBAN+INTELLIGENCE+OPERATING+SYSTEM"
     alt="AUREON — Urban Intelligence Operating System"
   />
 </p>
@@ -53,18 +53,15 @@
 
 ## What is Aureon?
 
-Aureon is an experimental **Urban Intelligence Operating System** built around
-a simulated Bengaluru.
+Aureon is an experimental **Urban Intelligence Operating System** built around a simulated Bengaluru.
 
 Instead of simply visualizing a city, Aureon simulates one.
 
-Incidents emerge, ambulances move through a road network, hospitals receive
-patients, and dispatch strategies make allocation decisions under changing
-conditions.
+Incidents emerge, ambulances move through a road network, hospitals receive patients, and dispatch strategies make allocation decisions under changing conditions.
 
-The key idea is **explainable decision-making**.
+The core idea is **explainable decision-making**.
 
-Aureon doesn't only show what happened. It records:
+Aureon records:
 
 - what decision was made
 - why it was made
@@ -83,8 +80,7 @@ A simple system might ask:
 
 > Which ambulance is closest?
 
-But the closest ambulance may be the only available unit protecting another
-part of the city.
+But the closest ambulance may be the only available unit protecting another part of the city.
 
 Aureon explores a broader decision space:
 
@@ -98,78 +94,113 @@ Fleet coverage
 Demand conditions
       ↓
 Dispatch Decision
+```
+
 The goal is not to claim that one strategy is universally optimal.
-The goal is to make the trade-offs visible, explainable and measurable.
-Experience Aureon
+
+The goal is to make the trade-offs **visible, explainable and measurable**.
+
+---
+
+## Experience Aureon
+
 The recommended way to experience the project is:
+
+```text
 Landing Page
-      ↓
+     ↓
 Enter Command Center
-      ↓
+     ↓
 Start Showcase Demo
-      ↓
+     ↓
 Watch incidents unfold
-      ↓
+     ↓
 Inspect Decision Ledger
-      ↓
+     ↓
 Explain a decision
-      ↓
+     ↓
 Let the run complete
-      ↓
+     ↓
 Evidence Replay
-      ↓
+     ↓
 Mission Debrief
-      ↓
+     ↓
 Compare strategies
-Suggested first run
-Open the live demo and click Enter Command Center.
-From there:
-1. Start Showcase Demo
-2. Let the simulation run for a moment
-3. Watch incidents appear on the map and incident queue
-4. Watch ambulances move through the road network
-5. Open the Decision Ledger
-6. Select EXPLAIN on a decision
-7. Let the simulation finish
-8. Open Evidence Replay
-9. Explore the Mission Debrief
-10. Use COMPARE to evaluate the dispatch strategy
-The showcase uses a curated scenario backed by the simulation engine rather than
-a prerecorded UI animation.
-Cold Start Note
-The public frontend is deployed on Vercel while the Python backend is deployed
-on Render's Free tier.
-After a period of inactivity, the backend may temporarily spin down.
-When that happens, the frontend can initially show:
+```
+
+### Suggested first run
+
+1. Open the live demo and click **Enter Command Center**
+2. Click **Start Showcase Demo**
+3. Let the simulation run for a moment
+4. Watch incidents appear on the map and incident queue
+5. Watch ambulances move through the road network
+6. Open the **Decision Ledger**
+7. Select **EXPLAIN** on a decision
+8. Let the simulation finish
+9. Open **Evidence Replay**
+10. Explore the **Mission Debrief**
+11. Use **COMPARE** to evaluate the dispatch strategy
+
+The showcase uses a curated scenario backed by the actual simulation engine rather than a prerecorded UI animation.
+
+---
+
+## Cold Start & Public Demo Notes
+
+The public frontend is deployed on Vercel while the Python backend currently runs on Render's Free tier.
+
+After inactivity, the backend may temporarily spin down.
+
+When this happens, the frontend may initially show:
+
+```text
 BACKEND OFFLINE
 CONNECTING
 FEED LOST
+```
+
 If this happens:
-Wait around 1–2 minutes, then refresh once.
+
+- wait around **1–2 minutes**
+- refresh the page once
+- reopen the Command Center
+- start the showcase again if necessary
+
 Once the backend wakes, the Command Center and showcase should operate normally.
-This is a hosting cold-start limitation of the public demo environment, not a
-failure of the simulation itself.
-For production-scale deployment, the backend should run on infrastructure
-without Free-tier spin-down behaviour and with durable shared storage.
-Command Center
+
+This is a hosting cold-start limitation of the public demo environment, not a failure of the simulation engine.
+
+For production-scale deployment, the backend should run on infrastructure without Free-tier spin-down behaviour and with durable shared storage.
+
+---
+
+## Command Center
+
 <p align="center">
   <img src="assets/screenshots/command-center.png" alt="Aureon Command Center" width="900"/>
 </p>
 
 The Command Center is Aureon's primary operational interface.
+
 It combines:
-- Digital Twin — live simulated city
-- Incident Queue — active emergency events
-- Fleet — ambulance state
-- Hospitals — facility state
-- Decision Ledger — dispatch decisions
-- Entity Inspector — detailed entity information
-- Mission Timeline — simulation progress
-The interface is designed around mission control rather than a conventional
-analytics dashboard.
-Digital Twin
+
+- **Digital Twin** — live simulated city
+- **Incident Queue** — active emergency events
+- **Fleet** — ambulance state
+- **Hospitals** — facility state
+- **Decision Ledger** — dispatch decisions
+- **Entity Inspector** — detailed entity information
+- **Mission Timeline** — simulation progress
+
+The interface is intentionally designed around mission control rather than a conventional analytics dashboard.
+
+### Digital Twin
+
 The central 3D scene represents the simulated city.
+
 It contains:
+
 - road infrastructure
 - ambulances
 - hospitals
@@ -177,24 +208,29 @@ It contains:
 - active incidents
 - route movement
 - operational state
-The simulation engine advances the city through discrete steps while the
-frontend renders the resulting state.
-Repeated entities such as vehicles and infrastructure are rendered using
-GPU-friendly techniques so the scene can remain responsive while many entities
-are active.
-Dispatch Intelligence
-Aureon supports multiple dispatch strategies so decisions can be benchmarked
-rather than judged in isolation.
-Strategy	Purpose
-NearestAvailableStrategy	Greedy proximity-based baseline
-AdaptiveAureonStrategy	Assignment with coverage preservation
-PredictiveStrategy	Demand-oriented positioning
-HybridAureonStrategy	Combines multiple decision signals
 
+The simulation engine advances the city through discrete steps while the frontend renders the resulting state.
 
-The primary showcase strategy is:
-HybridAureonStrategy
-A decision can incorporate signals such as:
+Repeated entities such as vehicles and infrastructure are rendered using GPU-friendly techniques so the scene remains responsive while many entities are active.
+
+---
+
+## Dispatch Intelligence
+
+Aureon supports multiple dispatch strategies so that decisions can be benchmarked rather than judged in isolation.
+
+| Strategy | Purpose |
+| --- | --- |
+| `NearestAvailableStrategy` | Greedy proximity-based baseline |
+| `AdaptiveAureonStrategy` | Assignment with coverage preservation |
+| `PredictiveStrategy` | Demand-oriented positioning |
+| `HybridAureonStrategy` | Combines multiple decision signals |
+
+The primary showcase strategy is **`HybridAureonStrategy`**.
+
+A decision can incorporate:
+
+```text
 Response ETA
 Vehicle capability
 Coverage preservation
@@ -202,12 +238,19 @@ Demand conditions
 Alternative candidates
         ↓
 Dispatch Decision
-The system therefore explores decisions beyond simply selecting the nearest
-available ambulance.
-Explainable Decisions
-Explainability exists at the decision layer rather than being added only as
-frontend copy.
-A strategy publishes structured information alongside its selected unit.
+```
+
+The system therefore explores decisions beyond simply selecting the nearest available ambulance.
+
+---
+
+## Explainable Decisions
+
+Explainability exists at the decision layer rather than being added only as frontend copy.
+
+A strategy publishes structured information alongside its selected unit:
+
+```python
 DispatchDecision(
     ambulance_id="AMB-07",
     rationale="Closest capable unit while preserving west-zone coverage",
@@ -222,9 +265,15 @@ DispatchDecision(
         "tradeoff": "Preserves regional coverage"
     }
 )
+```
+
 The frontend displays the reasoning supplied by the decision engine.
+
 It does not independently invent a justification.
-This creates a direct chain:
+
+The resulting chain is:
+
+```text
 Dispatch Strategy
        ↓
 Decision + Rationale
@@ -236,9 +285,18 @@ Backend
 Decision Ledger
        ↓
 Operator Explanation
-Decision Ledger & Evidence Replay
+```
+
+This makes explainability part of the simulation architecture rather than simply a visual feature.
+
+---
+
+## Decision Ledger & Evidence Replay
+
 The Decision Ledger acts as Aureon's operational audit trail.
+
 A decision can expose:
+
 - selected ambulance
 - ETA
 - capability match
@@ -248,18 +306,24 @@ A decision can expose:
 - trade-offs
 - timestamps
 - outcome
+
+### Demo Run
+
 <p align="center">
   <img src="assets/screenshots/demo-run.png" alt="Aureon Demo Run" width="900"/>
 </p>
 
-Once a run completes, the recorded events become available through the Mission
-Debrief and Evidence Replay.
+Once a run completes, the recorded events become available through the Mission Debrief and Evidence Replay.
+
+### Evidence Replay
+
 <p align="center">
   <img src="assets/screenshots/evidence-replay.png" alt="Aureon Evidence Replay" width="900"/>
 </p>
 
-The replay is based on recorded simulation output rather than simply executing
-the same scenario again.
+The replay is based on recorded simulation output rather than simply executing the same scenario again.
+
+```text
 Live Run
    ↓
 Recorded Events
@@ -267,43 +331,58 @@ Recorded Events
 Mission Debrief
    ↓
 Evidence Replay
-This lets the operator understand not only the final result, but the sequence
-of decisions that produced it.
-Compare & Custom Scenarios
-Aureon includes a comparison surface for evaluating different dispatch
-strategies.
+```
+
+This lets the operator understand not only the final result, but the sequence of decisions that produced it.
+
+---
+
+## Compare & Custom Scenarios
+
+Aureon includes a comparison surface for evaluating different dispatch strategies.
+
 <p align="center">
   <img src="assets/screenshots/compare.png" alt="Aureon Compare" width="900"/>
 </p>
 
 The comparison experience can be used to explore differences in:
+
 - response behaviour
 - coverage
 - capability matching
 - incident completion
 - strategy decisions
-Custom Scenario Simulator
-The Custom Scenario Simulator allows users to create their own emergency
-scenario rather than relying only on curated presets.
+
+### Custom Scenario Simulator
+
+The Custom Scenario Simulator allows users to create their own emergency scenario rather than relying only on curated presets.
+
 Users can specify:
+
 - incident type
 - location
 - severity
 - traffic/context
 - weather/context
 - time/context
-The simulator then produces a decision-oriented result containing information
-such as:
+
+The simulator then produces a decision-oriented result containing information such as:
+
 - selected ambulance
 - expected response time
 - recommended hospital
 - decision factors
 - reasoning behind the assignment
-Locations are resolved against Aureon's configured locality and facility data,
-while free-text locations can also be accepted by the simulator.
-The feature is designed to demonstrate how the same decision engine responds to
-different conditions rather than showing one hard-coded outcome.
-Architecture
+
+Locations are resolved against Aureon's configured locality and facility data, while free-text locations can also be accepted by the simulator.
+
+The feature demonstrates how the same decision engine responds to changing conditions rather than showing one hard-coded outcome.
+
+---
+
+## Architecture
+
+```text
 ┌──────────────────────────────────────────────────────────────┐
 │                         FRONTEND                             │
 │                                                              │
@@ -339,7 +418,11 @@ Architecture
 │  Dispatch strategies                                          │
 │  Event journal                                                │
 └──────────────────────────────────────────────────────────────┘
-Simulation pipeline
+```
+
+### Simulation pipeline
+
+```text
 Scenario
    ↓
 City Construction
@@ -357,105 +440,177 @@ Event Recording
 Frontend State Feed
    ↓
 Mission Debrief
-Seeded scenarios make behaviour reproducible for demonstrations, testing and
-benchmarking.
-Tech Stack
-Layer	Technology
-Frontend	Next.js 15, React 19
-3D	Three.js, React Three Fiber
-Animation	GSAP, ScrollTrigger
-State	Zustand
-Backend	FastAPI, Uvicorn
-Simulation	Python
-Numerical Computing	NumPy, SciPy
-Graph Algorithms	NetworkX
-ML	scikit-learn / XGBoost
-Persistence	SQLite
-Testing	Pytest
-Frontend Deployment	Vercel
-Backend Deployment	Render
+```
 
+Seeded scenarios make behaviour reproducible for demonstrations, testing and benchmarking.
 
-Deployment
+---
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js 15, React 19 |
+| 3D | Three.js, React Three Fiber |
+| Animation | GSAP, ScrollTrigger |
+| State | Zustand |
+| Backend | FastAPI, Uvicorn |
+| Simulation | Python |
+| Numerical Computing | NumPy, SciPy |
+| Graph Algorithms | NetworkX |
+| ML | scikit-learn, XGBoost |
+| Persistence | SQLite |
+| Testing | Pytest |
+| Frontend Deployment | Vercel |
+| Backend Deployment | Render |
+
+---
+
+## Deployment
+
 Aureon's public deployment is split between frontend and backend:
-                  USER
-                    │
-                    ▼
-             ┌──────────────┐
-             │   Vercel     │
-             │  Next.js     │
-             │  Frontend    │
-             └──────┬───────┘
-                    │
-                  REST
-                    │
-                    ▼
-             ┌──────────────┐
-             │   Render     │
-             │   FastAPI    │
-             │ Simulation   │
-             │   SQLite     │
-             └──────────────┘
+
+```text
+                    USER
+                      │
+                      ▼
+              ┌──────────────┐
+              │    Vercel    │
+              │   Next.js    │
+              │   Frontend   │
+              └──────┬───────┘
+                     │
+                   REST
+                     │
+                     ▼
+              ┌──────────────┐
+              │    Render    │
+              │   FastAPI    │
+              │  Simulation  │
+              │    SQLite    │
+              └──────────────┘
+```
+
 The frontend receives the backend URL through environment configuration.
+
 Important deployment variables include:
+
+```text
 NEXT_PUBLIC_API_URL
 NEXT_PUBLIC_WS_URL
 CORS_ORIGINS
 DEBUG
 PORT
+```
+
 Production secrets should never be committed to the repository.
-Local Development
-Requirements
+
+---
+
+## Local Development
+
+### Requirements
+
 - Node.js 20+
 - Python 3.11+
-- uv
+- `uv`
 - Make
 - Docker (optional)
-Configure
+
+### Configure
+
+```bash
 cp .env.example .env
-Full stack
+```
+
+### Full stack
+
+```bash
 make dev
+```
+
 Expected services:
+
+```text
 Frontend → http://localhost:3000
 Backend  → http://localhost:8000
-Individual services
+```
+
+### Individual services
+
+```bash
 make backend-dev
 make frontend-dev
-Tests
+```
+
+### Tests
+
+```bash
 cd backend
 uv run pytest -q
-cd simulation
+
+cd ../simulation
 PYTHONPATH=.. uv run pytest -q
-cd frontend
+
+cd ../frontend
 npm run type-check
 npm run build
-Data, Sources & Scope
+```
+
+---
+
+## Data, Sources & Scope
+
 Aureon is a simulation and research-oriented prototype.
-The city, incidents, fleet behaviour and emergency outcomes are simulated for
-experimentation and demonstration. The system should not be interpreted as
-real-world emergency dispatch infrastructure.
-The project builds on the following open-source technologies and documentation:
-- Next.js
-- React
-- FastAPI
-- Uvicorn
-- NumPy
-- SciPy
-- NetworkX
-- scikit-learn
-- XGBoost
-- Three.js
-- React Three Fiber
-- GSAP
-- Zustand
-- SQLite
-- Vercel
-- Render
-Where geographic/reference data is derived from OpenStreetMap, attribution is
-provided in accordance with the applicable OpenStreetMap licence requirements.
-Limitations
+
+The city, incidents, fleet behaviour and emergency outcomes are simulated for experimentation and demonstration.
+
+The system should **not** be interpreted as real-world emergency dispatch infrastructure.
+
+### Technology documentation
+
+- Next.js — https://nextjs.org/docs
+- React — https://react.dev/
+- FastAPI — https://fastapi.tiangolo.com/
+- Uvicorn — https://www.uvicorn.org/
+- NumPy — https://numpy.org/doc/
+- SciPy — https://docs.scipy.org/doc/scipy/
+- NetworkX — https://networkx.org/documentation/stable/
+- scikit-learn — https://scikit-learn.org/stable/
+- XGBoost — https://xgboost.readthedocs.io/
+- Three.js — https://threejs.org/docs/
+- React Three Fiber — https://r3f.docs.pmnd.rs/
+- GSAP — https://gsap.com/docs/
+- Zustand — https://zustand.docs.pmnd.rs/
+- SQLite — https://www.sqlite.org/docs.html
+- Vercel — https://vercel.com/docs
+- Render — https://render.com/docs
+
+Where geographic/reference data is derived from OpenStreetMap, attribution is provided in accordance with the applicable OpenStreetMap licence requirements.
+
+### Scope
+
+Aureon explores:
+
+- urban simulation
+- resource allocation
+- emergency-dispatch decision support
+- explainability
+- digital twins
+- event recording
+- strategy benchmarking
+- operational interfaces
+
+It is not intended to replace trained emergency operators or provide operational medical or emergency-response instructions.
+
+---
+
+## Limitations
+
 Aureon is currently a showcase and research prototype.
+
 Known limitations include:
+
 - simulated rather than live emergency data
 - Render Free-tier cold starts
 - SQLite-based persistence
@@ -463,13 +618,15 @@ Known limitations include:
 - REST polling rather than WebSockets
 - limited production-scale concurrency
 - deterministic showcase scenarios
-The system is intended to explore:
-simulation, resource allocation, explainability, digital twins and
-decision-support interfaces.
-It is not intended to replace trained emergency operators or provide
-operational medical or emergency-response instructions.
-Roadmap
+
+These constraints are intentional trade-offs for a lightweight, reproducible research and portfolio environment.
+
+---
+
+## Roadmap
+
 Future directions include:
+
 - live traffic integration
 - richer demand prediction
 - larger geographic datasets
@@ -480,4 +637,15 @@ Future directions include:
 - experiment tracking
 - multi-city simulation
 - richer hospital and fleet intelligence
-- production authentication and observability
+- production authentication
+- deeper observability
+
+---
+
+<p align="center">
+  <strong>Simulate the city. Make the decision. Preserve the evidence.</strong>
+</p>
+
+<p align="center">
+  Built as an exploration of simulation, AI-assisted decision-making and operational interface design.
+</p>
