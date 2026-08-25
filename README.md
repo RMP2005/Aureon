@@ -641,6 +641,29 @@ Future directions include:
 - deeper observability
 
 ---
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+See the `LICENSE` file for details.
+
+---
+
+<p align="center">
+  Built with curiosity, caffeine & a slightly unreasonable love for making cities think.
+</p>
+
+<p align="center">
+  <strong>Built with ♥ by Mayank</strong>
+</p>
+
+<p align="center">
+  <sub>
+    Aureon is a research-oriented simulation project and is not intended for real-world emergency dispatch.
+  </sub>
+</p>
 
 <p align="center">
   <strong>Simulate the city. Make the decision. Preserve the evidence.</strong>
