@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { FeedStatus } from '@/hooks/useCommandFeed';
 import type { RunProgress } from '@/lib/api';
 import { useSessionStore } from '@/lib/twin/store';
+import { resetAllScrollers } from '@/components/brand/HomeLink';
 import AureonMark from '@/components/brand/AureonMark';
 
 /**
@@ -38,13 +39,13 @@ export default function MissionBar({
     return (
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
+          <Link href="/" onClick={resetAllScrollers} className="flex items-center gap-2 font-display text-base font-semibold tracking-tight hover:opacity-80 transition-opacity">
             <AureonMark size={18} />
             Aureon <span className="text-teal-core">·</span>{' '}
             <span className="hud-label align-middle text-[var(--color-text-secondary)]">
               Command
             </span>
-          </span>
+          </Link>
           <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
             {runId ?? ''}
           </span>
@@ -101,13 +102,13 @@ export default function MissionBar({
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
       <div className="flex items-baseline gap-3 min-w-0">
-        <span className="flex items-center gap-2 font-display text-base font-semibold tracking-tight">
+        <Link href="/" onClick={resetAllScrollers} className="flex items-center gap-2 font-display text-base font-semibold tracking-tight hover:opacity-80 transition-opacity">
           <AureonMark size={18} />
           Aureon <span className="text-teal-core">·</span>{' '}
           <span className="hud-label align-middle text-[var(--color-text-secondary)]">
             Command
           </span>
-        </span>
+        </Link>
         <span className="tnum truncate font-mono text-xs text-[var(--color-text-muted)]">
           {runId ?? 'NO ACTIVE RUN'}
         </span>

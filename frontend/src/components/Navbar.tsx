@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { NAV_ITEMS } from '@/lib/constants';
 import { getHealth } from '@/lib/api';
 import { resetAllScrollers } from '@/components/brand/HomeLink';
+import AureonMark from '@/components/brand/AureonMark';
 
 type ConnectionState = 'connecting' | 'online' | 'offline';
 
@@ -65,9 +66,7 @@ export default function Navbar() {
           onClick={resetAllScrollers}
           className="flex items-center gap-3"
         >
-          <div className="h-8 w-8 rounded-md bg-teal-core/10 border border-teal-core/30 flex items-center justify-center">
-            <span className="font-display font-bold text-sm text-teal-core">A</span>
-          </div>
+          <AureonMark size={20} />
           <span className="font-display text-lg font-semibold tracking-tight">Aureon</span>
         </Link>
 

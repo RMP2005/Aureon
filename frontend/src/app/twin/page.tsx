@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import TwinCanvas from '@/components/twin/TwinCanvas';
 import type { TwinPerfStats } from '@/components/twin/StatsProbe';
+import AureonMark from '@/components/brand/AureonMark';
 import {
   getRunLiveState,
   type RunLiveState,
@@ -67,9 +68,13 @@ function TwinPageInner() {
       </div>
 
       {/* HUD — top-left identity + live clock */}
-      <div className="pointer-events-none absolute left-5 top-5 select-none">
-        <p className="font-display text-lg font-semibold tracking-tight">
-          Aureon <span className="text-teal-core">/</span> Bengaluru Twin
+      <div className="absolute left-5 top-5 select-none">
+        <Link href="/" onClick={resetAllScrollers} className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight hover:opacity-80 transition-opacity">
+          <AureonMark size={18} />
+          Aureon
+        </Link>
+        <p className="pointer-events-none font-display text-lg font-semibold tracking-tight">
+          <span className="text-teal-core">/</span> Bengaluru Twin
         </p>
         <p className="hud-stamp mt-1 text-[var(--color-text-muted)]">
           {runId

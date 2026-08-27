@@ -10,6 +10,8 @@ import {
   type ComparisonImprovements,
   type SimulationMetrics,
 } from '@/lib/api';
+import { resetAllScrollers } from '@/components/brand/HomeLink';
+import AureonMark from '@/components/brand/AureonMark';
 import ScenarioDemo from '@/components/compare/ScenarioDemo';
 
 /**
@@ -130,12 +132,13 @@ export default function ComparePage() {
     <main className="flex min-h-dvh w-full flex-col bg-void lg:h-screen lg:w-screen lg:overflow-hidden">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-hairline bg-panel-1 px-5">
         <div className="flex items-baseline gap-3">
-          <span className="font-display text-base font-semibold tracking-tight">
+          <Link href="/" onClick={resetAllScrollers} className="flex items-center gap-2 font-display text-base font-semibold tracking-tight hover:opacity-80 transition-opacity">
+            <AureonMark size={18} />
             Aureon <span className="text-teal-core">·</span>{' '}
             <span className="hud-label align-middle text-[var(--color-text-secondary)]">
               Baseline vs Aureon
             </span>
-          </span>
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           {/* Mode switcher */}
