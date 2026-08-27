@@ -54,7 +54,7 @@ export default function DocsPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 pb-24">
+      <div className="px-6 lg:px-10 pb-24">
         {/* Hero */}
         <section className="pt-20 pb-16">
           <p className="hud-stamp !text-[10px] text-teal-core mb-5">
