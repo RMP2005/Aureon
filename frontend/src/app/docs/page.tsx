@@ -32,10 +32,10 @@ export default function DocsPage() {
     <main className="min-h-screen bg-void text-[var(--color-text-primary)]">
       {/* Top bar */}
       <header className="border-b border-hairline">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+        <div className="flex h-16 items-center justify-between px-6 lg:px-10">
           <HomeLink className="flex items-center gap-3 select-none">
-            <AureonMark size={20} />
-            <span className="font-display text-base font-semibold tracking-tight">
+            <AureonMark size={22} />
+            <span className="font-display text-lg font-semibold tracking-tight">
               Aureon
             </span>
             <span aria-hidden className="mx-1 text-teal-core">/</span>
@@ -43,10 +43,10 @@ export default function DocsPage() {
               System Guide
             </span>
           </HomeLink>
-          <nav className="flex items-center gap-3 hud-stamp !text-[10px]">
+          <nav className="flex items-center gap-3">
             <Link
               href="/command"
-              className="rounded-md border border-hairline-strong px-3 py-1.5 text-[var(--color-text-secondary)] transition-colors hover:border-white/20 hover:text-[var(--color-text-primary)]"
+              className="rounded-md border border-hairline-strong px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:border-white/20 hover:text-[var(--color-text-primary)]"
             >
               ← COMMAND CENTER
             </Link>
@@ -54,9 +54,9 @@ export default function DocsPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-6 pb-24">
+      <div className="mx-auto max-w-5xl px-6 pb-24">
         {/* Hero */}
-        <section className="pt-16 pb-14">
+        <section className="pt-20 pb-16">
           <p className="hud-stamp !text-[10px] text-teal-core mb-5">
             OPERATOR HANDBOOK · REV 11
           </p>
@@ -71,12 +71,12 @@ export default function DocsPage() {
             response decisions across Bengaluru.
           </p>
 
-          <div className="mt-9">
+          <div className="mt-10">
             <SystemTour />
           </div>
         </section>
 
-        <div className="space-y-16">
+        <div className="space-y-20">
           {/* 01 — System map */}
           <section className="space-y-7">
             <SectionStamp n="01" title="How the system fits together" />
@@ -238,14 +238,14 @@ export default function DocsPage() {
         </div>
 
         {/* Footer handoff */}
-        <footer className="mt-20 border-t border-hairline pt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-24 border-t border-hairline pt-12 flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
             Ready to see it live? The Command Center runs real simulations with
             full decision evidence.
           </p>
           <Link
             href="/command?intro=1"
-            className="shrink-0 rounded-md bg-teal-core px-7 py-3 text-[13px] font-semibold tracking-wide text-black transition-all hover:brightness-110 hover:shadow-[0_0_24px_rgba(22,242,212,0.25)]"
+            className="shrink-0 rounded-md bg-teal-core px-8 py-3.5 text-sm font-semibold tracking-wide text-black transition-all hover:brightness-110 hover:shadow-[0_0_24px_rgba(22,242,212,0.25)]"
           >
             ENTER COMMAND CENTER →
           </Link>
