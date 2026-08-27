@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 px-6 max-w-6xl mx-auto">
+      <main className="pt-6 px-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Analytics</h1>
 
         {/* Summary cards */}

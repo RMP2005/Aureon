@@ -27,7 +27,7 @@ export default function ModelsPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 px-6 max-w-6xl mx-auto">
+      <main className="pt-6 px-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Models</h1>
 
         <div className="glass-panel rounded-2xl p-6">
